@@ -1,0 +1,62 @@
+# 构建产物
+build/
+*.pro.user
+*.autosave
+
+# Qt 生成的文件
+*.o
+*.obj
+moc_*.cpp
+qrc_*.cpp
+ui_*.h
+
+# 可执行文件
+*.exe
+*.app
+ToDoList
+ToDoList.exe
+
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+
+# 调试文件
+*.log
+*.dSYM/
+
+# 编辑器和 IDE
+.vscode/
+.vs/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# 临时文件
+tmp/
+temp/
+*.tmp
+
+# CMake
+CMakeLists.txt.user
+CMakeCache.txt
+CMakeFiles/
+cmake-build-*/
+
+# Qt Creator
+*.autosave
+*.QML.user
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+LSOverride
