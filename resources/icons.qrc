@@ -1,0 +1,13 @@
+<RCC>
+    <qresource prefix="/icons">
+        <file>icons/add.svg</file>
+        <file>icons/arrow_down.svg</file>
+        <file>icons/arrow_right.svg</file>
+        <file>icons/check.svg</file>
+        <file>icons/delete.svg</file>
+        <file>icons/edit.svg</file>
+        <file>icons/priority_high.svg</file>
+        <file>icons/priority_low.svg</file>
+        <file>icons/priority_medium.svg</file>
+    </qresource>
+</RCC>

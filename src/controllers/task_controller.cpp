@@ -1,5 +1,5 @@
 #include "task_controller.h"
-#include "../database/database_manager.h"
+#include "database.h"
 #include <QFileInfo>
 
 TaskController::TaskController(QObject *parent)
@@ -13,22 +13,22 @@ TaskController::~TaskController()
 
 QList<Task> TaskController::getAllTasks()
 {
-    return DatabaseManager::instance().getAllTasks();
+    return Database::instance().getAllTasks();
 }
 
 QList<Task> TaskController::getSubTasks(int parentId)
 {
-    return DatabaseManager::instance().getTasksByParentId(parentId);
+    return Database::instance().getTasksByParentId(parentId);
 }
 
 Task TaskController::getTaskById(int id)
 {
-    return DatabaseManager::instance().getTaskById(id);
+    return Database::instance().getTaskById(id);
 }
 
 bool TaskController::addTask(Task &task)
 {
-    if (DatabaseManager::instance().insertTask(task)) {
+    if (Database::instance().insertTask(task)) {
         emit taskAdded(task);
         return true;
     }
@@ -37,7 +37,7 @@ bool TaskController::addTask(Task &task)
 
 bool TaskController::updateTask(const Task &task)
 {
-    if (DatabaseManager::instance().updateTask(task)) {
+    if (Database::instance().updateTask(task)) {
         emit taskUpdated(task);
         return true;
     }
@@ -46,7 +46,7 @@ bool TaskController::updateTask(const Task &task)
 
 bool TaskController::deleteTask(int id)
 {
-    if (DatabaseManager::instance().deleteTask(id)) {
+    if (Database::instance().deleteTask(id)) {
         emit taskDeleted(id);
         return true;
     }
@@ -67,12 +67,12 @@ bool TaskController::toggleTaskCompletion(int id)
 
 QList<Tag> TaskController::getAllTags()
 {
-    return DatabaseManager::instance().getAllTags();
+    return Database::instance().getAllTags();
 }
 
 bool TaskController::addTag(Tag &tag)
 {
-    if (DatabaseManager::instance().insertTag(tag)) {
+    if (Database::instance().insertTag(tag)) {
         emit tagsChanged();
         return true;
     }
@@ -81,7 +81,7 @@ bool TaskController::addTag(Tag &tag)
 
 bool TaskController::updateTag(const Tag &tag)
 {
-    if (DatabaseManager::instance().updateTag(tag)) {
+    if (Database::instance().updateTag(tag)) {
         emit tagsChanged();
         return true;
     }
@@ -90,7 +90,7 @@ bool TaskController::updateTag(const Tag &tag)
 
 bool TaskController::deleteTag(int id)
 {
-    if (DatabaseManager::instance().deleteTag(id)) {
+    if (Database::instance().deleteTag(id)) {
         emit tagsChanged();
         return true;
     }
@@ -99,7 +99,7 @@ bool TaskController::deleteTag(int id)
 
 bool TaskController::assignTagToTask(int taskId, int tagId)
 {
-    if (DatabaseManager::instance().assignTagToTask(taskId, tagId)) {
+    if (Database::instance().assignTagToTask(taskId, tagId)) {
         emit tagsChanged();
         return true;
     }
@@ -108,7 +108,7 @@ bool TaskController::assignTagToTask(int taskId, int tagId)
 
 bool TaskController::removeTagFromTask(int taskId, int tagId)
 {
-    if (DatabaseManager::instance().removeTagFromTask(taskId, tagId)) {
+    if (Database::instance().removeTagFromTask(taskId, tagId)) {
         emit tagsChanged();
         return true;
     }
@@ -117,7 +117,7 @@ bool TaskController::removeTagFromTask(int taskId, int tagId)
 
 bool TaskController::addDependency(int taskId, int dependsOnId)
 {
-    if (DatabaseManager::instance().addDependency(taskId, dependsOnId)) {
+    if (Database::instance().addDependency(taskId, dependsOnId)) {
         emit dependenciesChanged();
         return true;
     }
@@ -126,7 +126,7 @@ bool TaskController::addDependency(int taskId, int dependsOnId)
 
 bool TaskController::removeDependency(int taskId, int dependsOnId)
 {
-    if (DatabaseManager::instance().removeDependency(taskId, dependsOnId)) {
+    if (Database::instance().removeDependency(taskId, dependsOnId)) {
         emit dependenciesChanged();
         return true;
     }
@@ -136,7 +136,7 @@ bool TaskController::removeDependency(int taskId, int dependsOnId)
 bool TaskController::addFileToTask(int taskId, const QString &filePath)
 {
     QFileInfo fileInfo(filePath);
-    if (DatabaseManager::instance().addFileToTask(taskId, filePath, fileInfo.fileName())) {
+    if (Database::instance().addFileToTask(taskId, filePath, fileInfo.fileName())) {
         emit filesChanged();
         return true;
     }
@@ -145,7 +145,7 @@ bool TaskController::addFileToTask(int taskId, const QString &filePath)
 
 bool TaskController::removeFileFromTask(int fileId)
 {
-    if (DatabaseManager::instance().removeFileFromTask(fileId)) {
+    if (Database::instance().removeFileFromTask(fileId)) {
         emit filesChanged();
         return true;
     }
@@ -154,7 +154,7 @@ bool TaskController::removeFileFromTask(int fileId)
 
 double TaskController::updateProgress(int taskId)
 {
-    double progress = DatabaseManager::instance().calculateProgress(taskId);
+    double progress = Database::instance().calculateProgress(taskId);
     Task task = getTaskById(taskId);
     task.setProgress(progress);
     updateTask(task);

@@ -1,6 +1,14 @@
 #include "theme_manager.h"
 #include <QFile>
 #include <QDebug>
+#include <QApplication>
+#include <QDir>
+#include <QStyleFactory>
+#include <QWidget>
+#include <QStyle>
+
+const QString ThemeManager::SETTINGS_KEY_THEME = "theme";
+const QString ThemeManager::SETTINGS_KEY_FOLLOW_SYSTEM = "follow_system_theme";
 
 ThemeManager& ThemeManager::instance()
 {
@@ -10,254 +18,184 @@ ThemeManager& ThemeManager::instance()
 
 ThemeManager::ThemeManager(QObject *parent)
     : QObject(parent)
-    , m_currentTheme(Light)
+    , m_currentTheme(ThemeManager::Dark)
+    , m_followSystem(false)
+    , m_settings(new QSettings("ToDoList", "AppSettings", this))
 {
-    loadLightTheme();
-    loadDarkTheme();
+    loadThemeFromResources();
+    loadThemePreference();
 }
 
 ThemeManager::~ThemeManager()
 {
+    saveThemePreference();
 }
 
-void ThemeManager::loadLightTheme()
+void ThemeManager::loadThemeFromResources()
 {
-    m_lightStyleSheet = R"(
-        QMainWindow {
-            background-color: #F9FAFB;
-        }
-        QWidget {
-            background-color: #F9FAFB;
-            color: #1F2937;
-        }
-        QLabel {
-            color: #1F2937;
-        }
-        QLineEdit {
-            background-color: #FFFFFF;
-            border: 1px solid #D1D5DB;
-            border-radius: 6px;
-            padding: 8px;
-            color: #1F2937;
-        }
-        QLineEdit:focus {
-            border: 2px solid #3B82F6;
-        }
-        QPushButton {
-            background-color: #3B82F6;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            padding: 8px 16px;
-            font-weight: bold;
-        }
-        QPushButton:hover {
-            background-color: #2563EB;
-        }
-        QPushButton:pressed {
-            background-color: #1D4ED8;
-        }
-        QScrollBar:vertical {
-            background-color: #F3F4F6;
-            width: 12px;
-            border-radius: 6px;
-        }
-        QScrollBar::handle:vertical {
-            background-color: #9CA3AF;
-            border-radius: 6px;
-            min-height: 30px;
-        }
-        QScrollBar::handle:vertical:hover {
-            background-color: #6B7280;
-        }
-        QScrollArea {
-            border: none;
-            background-color: transparent;
-        }
-        QMenuBar {
-            background-color: #FFFFFF;
-            border-bottom: 1px solid #E5E7EB;
-        }
-        QMenuBar::item {
-            padding: 6px 12px;
-            background-color: transparent;
-        }
-        QMenuBar::item:selected {
-            background-color: #F3F4F6;
-        }
-        QToolBar {
-            background-color: #FFFFFF;
-            border: none;
-            border-bottom: 1px solid #E5E7EB;
-            spacing: 8px;
-            padding: 4px;
-        }
-        QStatusBar {
-            background-color: #FFFFFF;
-            border-top: 1px solid #E5E7EB;
-            color: #6B7280;
-        }
-        QCheckBox::indicator {
-            width: 20px;
-            height: 20px;
-            border-radius: 4px;
-            border: 2px solid #9CA3AF;
-            background-color: white;
-        }
-        QCheckBox::indicator:checked {
-            background-color: #3B82F6;
-            border-color: #3B82F6;
-        }
-        QMessageBox {
-            background-color: #FFFFFF;
-        }
-        QMessageBox QLabel {
-            color: #1F2937;
-        }
-        QMessageBox QPushButton {
-            background-color: #3B82F6;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            padding: 8px 16px;
-            min-width: 80px;
-        }
-        QMessageBox QPushButton:hover {
-            background-color: #2563EB;
-        }
-    )";
+    QFile darkFile(":/styles/dark.qss");
+    if (darkFile.open(QIODevice::ReadOnly)) {
+        m_darkStyleSheet = QString::fromUtf8(darkFile.readAll());
+        darkFile.close();
+    } else {
+        qWarning() << "Failed to load dark.qss from resources";
+    }
+
+    QFile lightFile(":/styles/light.qss");
+    if (lightFile.open(QIODevice::ReadOnly)) {
+        m_lightStyleSheet = QString::fromUtf8(lightFile.readAll());
+        lightFile.close();
+    } else {
+        qWarning() << "Failed to load light.qss from resources";
+    }
 }
 
-void ThemeManager::loadDarkTheme()
+void ThemeManager::loadThemePreference()
 {
-    m_darkStyleSheet = R"(
-        QMainWindow {
-            background-color: #111827;
-        }
-        QWidget {
-            background-color: #111827;
-            color: #F9FAFB;
-        }
-        QLabel {
-            color: #F9FAFB;
-        }
-        QLineEdit {
-            background-color: #1F2937;
-            border: 1px solid #374151;
-            border-radius: 6px;
-            padding: 8px;
-            color: #F9FAFB;
-        }
-        QLineEdit:focus {
-            border: 2px solid #3B82F6;
-        }
-        QPushButton {
-            background-color: #3B82F6;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            padding: 8px 16px;
-            font-weight: bold;
-        }
-        QPushButton:hover {
-            background-color: #2563EB;
-        }
-        QPushButton:pressed {
-            background-color: #1D4ED8;
-        }
-        QScrollBar:vertical {
-            background-color: #1F2937;
-            width: 12px;
-            border-radius: 6px;
-        }
-        QScrollBar::handle:vertical {
-            background-color: #4B5563;
-            border-radius: 6px;
-            min-height: 30px;
-        }
-        QScrollBar::handle:vertical:hover {
-            background-color: #6B7280;
-        }
-        QScrollArea {
-            border: none;
-            background-color: transparent;
-        }
-        QMenuBar {
-            background-color: #1F2937;
-            border-bottom: 1px solid #374151;
-        }
-        QMenuBar::item {
-            padding: 6px 12px;
-            background-color: transparent;
-            color: #F9FAFB;
-        }
-        QMenuBar::item:selected {
-            background-color: #374151;
-        }
-        QToolBar {
-            background-color: #1F2937;
-            border: none;
-            border-bottom: 1px solid #374151;
-            spacing: 8px;
-            padding: 4px;
-        }
-        QStatusBar {
-            background-color: #1F2937;
-            border-top: 1px solid #374151;
-            color: #9CA3AF;
-        }
-        QCheckBox::indicator {
-            width: 20px;
-            height: 20px;
-            border-radius: 4px;
-            border: 2px solid #4B5563;
-            background-color: #1F2937;
-        }
-        QCheckBox::indicator:checked {
-            background-color: #3B82F6;
-            border-color: #3B82F6;
-        }
-        QMessageBox {
-            background-color: #1F2937;
-        }
-        QMessageBox QLabel {
-            color: #F9FAFB;
-        }
-        QMessageBox QPushButton {
-            background-color: #3B82F6;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            padding: 8px 16px;
-            min-width: 80px;
-        }
-        QMessageBox QPushButton:hover {
-            background-color: #2563EB;
-        }
-    )";
+    int themeValue = m_settings->value(SETTINGS_KEY_THEME, static_cast<int>(ThemeManager::Dark)).toInt();
+    m_followSystem = m_settings->value(SETTINGS_KEY_FOLLOW_SYSTEM, false).toBool();
+
+    if (m_followSystem) {
+        m_currentTheme = ThemeManager::System;
+        ThemeManager::Theme detectedTheme = detectSystemTheme();
+        qApp->setStyleSheet(detectedTheme == ThemeManager::Light ? m_lightStyleSheet : m_darkStyleSheet);
+    } else {
+        m_currentTheme = static_cast<ThemeManager::Theme>(themeValue);
+        qApp->setStyleSheet(m_currentTheme == ThemeManager::Light ? m_lightStyleSheet : m_darkStyleSheet);
+    }
 }
 
-void ThemeManager::setTheme(Theme theme)
+void ThemeManager::saveThemePreference()
 {
+    m_settings->setValue(SETTINGS_KEY_THEME, static_cast<int>(m_currentTheme));
+    m_settings->setValue(SETTINGS_KEY_FOLLOW_SYSTEM, m_followSystem);
+    m_settings->sync();
+}
+
+ThemeManager::Theme ThemeManager::detectSystemTheme() const
+{
+#ifdef Q_OS_WIN
+    QSettings settings("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+                       QSettings::NativeFormat);
+    return settings.value("AppsUseLightTheme", 1).toInt() == 1 ? ThemeManager::Light : ThemeManager::Dark;
+#else
+    return ThemeManager::Light;
+#endif
+}
+
+void ThemeManager::setTheme(ThemeManager::Theme theme)
+{
+    if (m_currentTheme == theme) {
+        return;
+    }
+
     m_currentTheme = theme;
-    qApp->setStyleSheet(getStyleSheet());
+
+    QString styleSheet;
+    if (theme == ThemeManager::System) {
+        ThemeManager::Theme detectedTheme = detectSystemTheme();
+        styleSheet = detectedTheme == ThemeManager::Light ? m_lightStyleSheet : m_darkStyleSheet;
+    } else {
+        styleSheet = theme == ThemeManager::Light ? m_lightStyleSheet : m_darkStyleSheet;
+    }
+
+    qApp->setStyleSheet(styleSheet);
     emit themeChanged(theme);
+    saveThemePreference();
 }
 
 void ThemeManager::toggleTheme()
 {
-    if (m_currentTheme == Light) {
-        setTheme(Dark);
+    if (m_currentTheme == ThemeManager::Light) {
+        setTheme(ThemeManager::Dark);
+    } else if (m_currentTheme == ThemeManager::Dark) {
+        setTheme(ThemeManager::Light);
     } else {
-        setTheme(Light);
+        setTheme(detectSystemTheme() == ThemeManager::Light ? ThemeManager::Dark : ThemeManager::Light);
     }
 }
 
 QString ThemeManager::getStyleSheet() const
 {
-    if (m_currentTheme == Light) {
-        return m_lightStyleSheet;
-    } else {
-        return m_darkStyleSheet;
+    if (m_currentTheme == ThemeManager::System) {
+        ThemeManager::Theme detectedTheme = detectSystemTheme();
+        return detectedTheme == ThemeManager::Light ? m_lightStyleSheet : m_darkStyleSheet;
+    }
+    return m_currentTheme == ThemeManager::Light ? m_lightStyleSheet : m_darkStyleSheet;
+}
+
+QColor ThemeManager::getPriorityColor(ThemeManager::Priority priority) const
+{
+    switch (priority) {
+        case ThemeManager::High:
+            return QColor("#EF4444");
+        case ThemeManager::Medium:
+            return QColor("#F59E0B");
+        case ThemeManager::Low:
+            return QColor("#10B981");
+        default:
+            return QColor("#64748B");
+    }
+}
+
+void ThemeManager::setFollowSystem(bool follow)
+{
+    if (m_followSystem != follow) {
+        m_followSystem = follow;
+        if (follow) {
+            m_currentTheme = ThemeManager::System;
+            ThemeManager::Theme detectedTheme = detectSystemTheme();
+            qApp->setStyleSheet(detectedTheme == ThemeManager::Light ? m_lightStyleSheet : m_darkStyleSheet);
+        } else {
+            ThemeManager::Theme newTheme = detectSystemTheme() == ThemeManager::Light ? ThemeManager::Light : ThemeManager::Dark;
+            setTheme(newTheme);
+        }
+        emit themeChanged(m_currentTheme);
+        saveThemePreference();
+    }
+}
+
+QString ThemeManager::themeName(ThemeManager::Theme theme) const
+{
+    switch (theme) {
+        case ThemeManager::Light:
+            return "Light";
+        case ThemeManager::Dark:
+            return "Dark";
+        case ThemeManager::System:
+            return "System";
+        default:
+            return "Unknown";
+    }
+}
+
+ThemeManager::Theme ThemeManager::themeFromName(const QString& name) const
+{
+    if (name.compare("Light", Qt::CaseInsensitive) == 0) {
+        return ThemeManager::Light;
+    } else if (name.compare("Dark", Qt::CaseInsensitive) == 0) {
+        return ThemeManager::Dark;
+    } else if (name.compare("System", Qt::CaseInsensitive) == 0) {
+        return ThemeManager::System;
+    }
+    return ThemeManager::Dark;
+}
+
+void ThemeManager::applyTheme(QWidget* widget)
+{
+    if (widget) {
+        widget->setStyleSheet(getStyleSheet());
+        widget->style()->unpolish(widget);
+        widget->style()->polish(widget);
+        widget->update();
+    }
+}
+
+void ThemeManager::onSystemThemeChanged()
+{
+    if (m_followSystem && m_currentTheme == ThemeManager::System) {
+        ThemeManager::Theme detectedTheme = detectSystemTheme();
+        qApp->setStyleSheet(detectedTheme == ThemeManager::Light ? m_lightStyleSheet : m_darkStyleSheet);
+        emit themeChanged(m_currentTheme);
     }
 }

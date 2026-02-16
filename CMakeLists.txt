@@ -3,55 +3,84 @@ project(ToDoList VERSION 1.0.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(Qt5 REQUIRED COMPONENTS Core Gui Widgets Sql)
+add_compile_options(/utf-8)
 
-file(GLOB_RECURSE PROJECT_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/*.h
+find_package(Qt5 COMPONENTS Core Gui Widgets Sql Svg REQUIRED)
+
+set(SOURCES
+    src/main.cpp
+    src/app.cpp
+    src/controllers/database.cpp
+    src/utils/logger.cpp
+    src/utils/date_utils.cpp
+    src/utils/file_utils.cpp
+    src/utils/theme_utils.cpp
+    src/utils/icon_utils.cpp
+    src/utils/theme_manager.cpp
+    src/controllers/task_controller.cpp
+    src/models/task.cpp
+    src/models/tag.cpp
 )
 
-file(GLOB PROJECT_RESOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/resources/*.qrc
+set(HEADERS
+    src/app.h
+    src/controllers/database.h
+    src/utils/logger.h
+    src/utils/date_utils.h
+    src/utils/file_utils.h
+    src/utils/theme_utils.h
+    src/utils/icon_utils.h
+    src/utils/theme_manager.h
+    src/controllers/task_controller.h
+    src/models/task.h
+    src/models/tag.h
 )
 
-add_executable(ToDoList
-    ${PROJECT_SOURCES}
-    ${PROJECT_RESOURCES}
+set(UI_SOURCES
+    src/views/mainwindow.cpp
+    src/views/task_list_widget.cpp
+    src/views/task_card_widget.cpp
 )
 
-target_link_libraries(ToDoList PRIVATE
-    Qt5::Core
-    Qt5::Gui
-    Qt5::Widgets
-    Qt5::Sql
+set(UI_HEADERS
+    src/views/mainwindow.h
+    src/views/task_list_widget.h
+    src/views/task_card_widget.h
 )
 
-if(MSVC)
-    target_compile_options(ToDoList PRIVATE
-        /utf-8
-        /permissive-
-    )
-endif()
+add_executable(ToDoList WIN32 ${SOURCES} ${HEADERS} ${UI_SOURCES} ${UI_HEADERS})
+
+target_link_libraries(ToDoList PRIVATE Qt5::Core Qt5::Gui Qt5::Widgets Qt5::Sql Qt5::Svg)
 
 set_target_properties(ToDoList PROPERTIES
     WIN32_EXECUTABLE TRUE
-    MACOSX_BUNDLE TRUE
+    MFC_RUNTIME_LIBRARY FALSE
 )
 
-if(WIN32)
+if(MSVC)
     set_target_properties(ToDoList PROPERTIES
+        VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/data"
         OUTPUT_NAME "ToDoList"
     )
 endif()
 
+set(RESOURCES
+    resources/icons.qrc
+    resources/styles.qrc
+)
+
+qt5_add_resources(ToDoList "${RESOURCES}")
+
+if(WIN32)
+    set_target_properties(ToDoList PROPERTIES
+        WIN32_EXECUTABLE TRUE
+    )
+endif()
+
 install(TARGETS ToDoList
-    BUNDLE DESTINATION .
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    RUNTIME DESTINATION .
 )

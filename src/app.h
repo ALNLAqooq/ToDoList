@@ -15,6 +15,8 @@ public:
 
 private:
     void initDatabase();
+    void initLogger();
+    void initSettings();
     void initTheme();
     void initWindow();
 };

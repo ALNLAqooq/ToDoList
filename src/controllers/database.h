@@ -1,18 +1,33 @@
-#ifndef DATABASE_MANAGER_H
-#define DATABASE_MANAGER_H
+#ifndef DATABASE_H
+#define DATABASE_H
 
 #include <QSqlDatabase>
 #include <QSqlError>
-#include "../models/task.h"
-#include "../models/tag.h"
+#include <QDateTime>
+#include <QStringList>
+#include <QList>
 
-class DatabaseManager
+class Task;
+class Tag;
+
+class Database
 {
 public:
-    static DatabaseManager& instance();
+    static Database& instance();
 
     bool open();
     void close();
+
+    bool createTables();
+    bool createIndexes();
+    bool createFTS5Table();
+
+    QSqlDatabase& database();
+
+    bool setSetting(const QString &key, const QString &value);
+    QString getSetting(const QString &key, const QString &defaultValue = QString());
+
+    void vacuum();
 
     QList<Task> getAllTasks();
     QList<Task> getTasksByParentId(int parentId);
@@ -20,34 +35,27 @@ public:
     bool insertTask(Task &task);
     bool updateTask(const Task &task);
     bool deleteTask(int id);
+    double calculateProgress(int taskId);
 
     QList<Tag> getAllTags();
-    Tag getTagById(int id);
     bool insertTag(Tag &tag);
     bool updateTag(const Tag &tag);
     bool deleteTag(int id);
     bool assignTagToTask(int taskId, int tagId);
     bool removeTagFromTask(int taskId, int tagId);
-    QList<int> getTagIdsForTask(int taskId);
-
-    QList<int> getDependencyIdsForTask(int taskId);
     bool addDependency(int taskId, int dependsOnId);
     bool removeDependency(int taskId, int dependsOnId);
-
-    QList<QString> getFilePathsForTask(int taskId);
     bool addFileToTask(int taskId, const QString &filePath, const QString &fileName);
     bool removeFileFromTask(int fileId);
 
-    double calculateProgress(int taskId);
-
 private:
-    DatabaseManager();
-    ~DatabaseManager();
-    DatabaseManager(const DatabaseManager&) = delete;
-    DatabaseManager& operator=(const DatabaseManager&) = delete;
+    Database();
+    ~Database();
+    Database(const Database&) = delete;
+    Database& operator=(const Database&) = delete;
 
-    bool createTables();
     QSqlDatabase m_database;
+    QString m_databasePath;
 };
 
-#endif // DATABASE_MANAGER_H
+#endif // DATABASE_H
