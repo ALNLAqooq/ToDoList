@@ -52,7 +52,7 @@ set(UI_HEADERS
     src/views/task_card_widget.h
 )
 
-add_executable(ToDoList WIN32 ${SOURCES} ${UI_SOURCES})
+add_executable(ToDoList WIN32 ${SOURCES} ${HEADERS} ${UI_SOURCES} ${UI_HEADERS})
 
 target_link_libraries(ToDoList PRIVATE Qt5::Core Qt5::Gui Qt5::Widgets Qt5::Sql Qt5::Svg)
 
