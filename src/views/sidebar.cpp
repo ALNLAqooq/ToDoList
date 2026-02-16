@@ -144,9 +144,9 @@ void Sidebar::setupCustomFolders()
             QAction *selected = menu.exec(m_foldersList->mapToGlobal(pos));
 
             if (selected == renameAction) {
-                renameFolder();
+                renameFolder(item);
             } else if (selected == deleteAction) {
-                deleteFolder();
+                deleteFolder(item);
             }
         }
     });
@@ -295,15 +295,14 @@ void Sidebar::createFolder()
     }
 }
 
-void Sidebar::renameFolder()
+void Sidebar::renameFolder(QListWidgetItem *item)
 {
-    QListWidgetItem *currentItem = m_foldersList->currentItem();
-    if (!currentItem) {
+    if (!item) {
         return;
     }
 
-    int folderId = currentItem->data(Qt::UserRole).toInt();
-    QString oldName = currentItem->text();
+    int folderId = item->data(Qt::UserRole).toInt();
+    QString oldName = item->text();
 
     bool ok;
     QString newName = QInputDialog::getText(this, "重命名文件夹", "新名称:", QLineEdit::Normal, oldName, &ok);
@@ -321,15 +320,14 @@ void Sidebar::renameFolder()
     }
 }
 
-void Sidebar::deleteFolder()
+void Sidebar::deleteFolder(QListWidgetItem *item)
 {
-    QListWidgetItem *currentItem = m_foldersList->currentItem();
-    if (!currentItem) {
+    if (!item) {
         return;
     }
 
-    int folderId = currentItem->data(Qt::UserRole).toInt();
-    QString folderName = currentItem->text();
+    int folderId = item->data(Qt::UserRole).toInt();
+    QString folderName = item->text();
 
     auto reply = QMessageBox::question(this, "确认删除",
         QString("确定要删除文件夹 \"%1\" 吗?\n\n文件夹内的任务不会被删除。").arg(folderName),

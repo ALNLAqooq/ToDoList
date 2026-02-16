@@ -43,8 +43,8 @@ private:
     void loadFolders();
     void loadTags();
     void createFolder();
-    void renameFolder();
-    void deleteFolder();
+    void renameFolder(QListWidgetItem *item);
+    void deleteFolder(QListWidgetItem *item);
 
     QVBoxLayout *m_mainLayout;
     QStackedWidget *m_stackWidget;
