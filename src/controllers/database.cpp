@@ -1,6 +1,8 @@
 #include "database.h"
 #include "../models/task.h"
 #include "../models/tag.h"
+#include "../models/notification.h"
+#include "../models/folder.h"
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QDir>
@@ -590,4 +592,283 @@ bool Database::removeFileFromTask(int fileId)
     query.addBindValue(fileId);
 
     return query.exec();
+}
+
+QList<Notification> Database::getAllNotifications()
+{
+    QList<Notification> notifications;
+    QSqlQuery query(m_database);
+    query.prepare("SELECT id, type, title, message, task_id, read, created_at FROM notifications ORDER BY created_at DESC");
+
+    if (query.exec()) {
+        while (query.next()) {
+            Notification notification;
+            notification.setId(query.value(0).toInt());
+            notification.setType(query.value(1).toInt());
+            notification.setTitle(query.value(2).toString());
+            notification.setMessage(query.value(3).toString());
+            notification.setTaskId(query.value(4).toInt());
+            notification.setRead(query.value(5).toBool());
+            notification.setCreatedAt(QDateTime::fromString(query.value(6).toString(), Qt::ISODate));
+            notifications.append(notification);
+        }
+    }
+
+    return notifications;
+}
+
+QList<Notification> Database::getUnreadNotifications()
+{
+    QList<Notification> notifications;
+    QSqlQuery query(m_database);
+    query.prepare("SELECT id, type, title, message, task_id, read, created_at FROM notifications WHERE read = 0 ORDER BY created_at DESC");
+
+    if (query.exec()) {
+        while (query.next()) {
+            Notification notification;
+            notification.setId(query.value(0).toInt());
+            notification.setType(query.value(1).toInt());
+            notification.setTitle(query.value(2).toString());
+            notification.setMessage(query.value(3).toString());
+            notification.setTaskId(query.value(4).toInt());
+            notification.setRead(query.value(5).toBool());
+            notification.setCreatedAt(QDateTime::fromString(query.value(6).toString(), Qt::ISODate));
+            notifications.append(notification);
+        }
+    }
+
+    return notifications;
+}
+
+QList<Notification> Database::getNotificationsByType(int type)
+{
+    QList<Notification> notifications;
+    QSqlQuery query(m_database);
+    query.prepare("SELECT id, type, title, message, task_id, read, created_at FROM notifications WHERE type = ? ORDER BY created_at DESC");
+    query.addBindValue(type);
+
+    if (query.exec()) {
+        while (query.next()) {
+            Notification notification;
+            notification.setId(query.value(0).toInt());
+            notification.setType(query.value(1).toInt());
+            notification.setTitle(query.value(2).toString());
+            notification.setMessage(query.value(3).toString());
+            notification.setTaskId(query.value(4).toInt());
+            notification.setRead(query.value(5).toBool());
+            notification.setCreatedAt(QDateTime::fromString(query.value(6).toString(), Qt::ISODate));
+            notifications.append(notification);
+        }
+    }
+
+    return notifications;
+}
+
+Notification Database::getNotificationById(int id)
+{
+    Notification notification;
+    QSqlQuery query(m_database);
+    query.prepare("SELECT id, type, title, message, task_id, read, created_at FROM notifications WHERE id = ?");
+    query.addBindValue(id);
+
+    if (query.exec() && query.next()) {
+        notification.setId(query.value(0).toInt());
+        notification.setType(query.value(1).toInt());
+        notification.setTitle(query.value(2).toString());
+        notification.setMessage(query.value(3).toString());
+        notification.setTaskId(query.value(4).toInt());
+        notification.setRead(query.value(5).toBool());
+        notification.setCreatedAt(QDateTime::fromString(query.value(6).toString(), Qt::ISODate));
+    }
+
+    return notification;
+}
+
+bool Database::insertNotification(Notification &notification)
+{
+    QSqlQuery query(m_database);
+    query.prepare("INSERT INTO notifications (type, title, message, task_id, read, created_at) VALUES (?, ?, ?, ?, ?, ?)");
+    query.addBindValue(static_cast<int>(notification.type()));
+    query.addBindValue(notification.title());
+    query.addBindValue(notification.message());
+    query.addBindValue(notification.taskId());
+    query.addBindValue(notification.isRead() ? 1 : 0);
+    query.addBindValue(QDateTime::currentDateTime().toString(Qt::ISODate));
+
+    if (query.exec()) {
+        notification.setId(query.lastInsertId().toInt());
+        return true;
+    }
+
+    return false;
+}
+
+bool Database::updateNotification(const Notification &notification)
+{
+    QSqlQuery query(m_database);
+    query.prepare("UPDATE notifications SET title = ?, message = ?, read = ? WHERE id = ?");
+    query.addBindValue(notification.title());
+    query.addBindValue(notification.message());
+    query.addBindValue(notification.isRead() ? 1 : 0);
+    query.addBindValue(notification.id());
+
+    return query.exec();
+}
+
+bool Database::deleteNotification(int id)
+{
+    QSqlQuery query(m_database);
+    query.prepare("DELETE FROM notifications WHERE id = ?");
+    query.addBindValue(id);
+
+    return query.exec();
+}
+
+bool Database::markNotificationAsRead(int id)
+{
+    QSqlQuery query(m_database);
+    query.prepare("UPDATE notifications SET read = 1 WHERE id = ?");
+    query.addBindValue(id);
+
+    return query.exec();
+}
+
+bool Database::markAllNotificationsAsRead()
+{
+    QSqlQuery query(m_database);
+    query.prepare("UPDATE notifications SET read = 1");
+
+    return query.exec();
+}
+
+int Database::getUnreadNotificationCount()
+{
+    QSqlQuery query(m_database);
+    query.prepare("SELECT COUNT(*) FROM notifications WHERE read = 0");
+
+    if (query.exec() && query.next()) {
+        return query.value(0).toInt();
+    }
+
+    return 0;
+}
+
+QList<Folder> Database::getAllFolders()
+{
+    QList<Folder> folders;
+    QSqlQuery query(m_database);
+    query.prepare("SELECT id, name, color, position, created_at FROM folders ORDER BY position ASC");
+
+    if (query.exec()) {
+        while (query.next()) {
+            Folder folder;
+            folder.setId(query.value(0).toInt());
+            folder.setName(query.value(1).toString());
+            folder.setColor(query.value(2).toString());
+            folder.setPosition(query.value(3).toInt());
+            folder.setCreatedAt(QDateTime::fromString(query.value(4).toString(), Qt::ISODate));
+
+            QList<int> taskIds = getTaskIdsByFolder(folder.id());
+            folder.setTaskIds(taskIds);
+
+            folders.append(folder);
+        }
+    }
+
+    return folders;
+}
+
+Folder Database::getFolderById(int id)
+{
+    Folder folder;
+    QSqlQuery query(m_database);
+    query.prepare("SELECT id, name, color, position, created_at FROM folders WHERE id = ?");
+    query.addBindValue(id);
+
+    if (query.exec() && query.next()) {
+        folder.setId(query.value(0).toInt());
+        folder.setName(query.value(1).toString());
+        folder.setColor(query.value(2).toString());
+        folder.setPosition(query.value(3).toInt());
+        folder.setCreatedAt(QDateTime::fromString(query.value(4).toString(), Qt::ISODate));
+
+        QList<int> taskIds = getTaskIdsByFolder(folder.id());
+        folder.setTaskIds(taskIds);
+    }
+
+    return folder;
+}
+
+bool Database::insertFolder(Folder &folder)
+{
+    QSqlQuery query(m_database);
+    query.prepare("INSERT INTO folders (name, color, position, created_at) VALUES (?, ?, ?, ?)");
+    query.addBindValue(folder.name());
+    query.addBindValue(folder.color());
+    query.addBindValue(folder.position());
+    query.addBindValue(QDateTime::currentDateTime().toString(Qt::ISODate));
+
+    if (query.exec()) {
+        folder.setId(query.lastInsertId().toInt());
+        return true;
+    }
+
+    return false;
+}
+
+bool Database::updateFolder(const Folder &folder)
+{
+    QSqlQuery query(m_database);
+    query.prepare("UPDATE folders SET name = ?, color = ?, position = ? WHERE id = ?");
+    query.addBindValue(folder.name());
+    query.addBindValue(folder.color());
+    query.addBindValue(folder.position());
+    query.addBindValue(folder.id());
+
+    return query.exec();
+}
+
+bool Database::deleteFolder(int id)
+{
+    QSqlQuery query(m_database);
+    query.prepare("DELETE FROM folders WHERE id = ?");
+    query.addBindValue(id);
+
+    return query.exec();
+}
+
+bool Database::assignTaskToFolder(int taskId, int folderId)
+{
+    QSqlQuery query(m_database);
+    query.prepare("INSERT OR IGNORE INTO task_folders (task_id, folder_id) VALUES (?, ?)");
+    query.addBindValue(taskId);
+    query.addBindValue(folderId);
+
+    return query.exec();
+}
+
+bool Database::removeTaskFromFolder(int taskId, int folderId)
+{
+    QSqlQuery query(m_database);
+    query.prepare("DELETE FROM task_folders WHERE task_id = ? AND folder_id = ?");
+    query.addBindValue(taskId);
+    query.addBindValue(folderId);
+
+    return query.exec();
+}
+
+QList<int> Database::getTaskIdsByFolder(int folderId)
+{
+    QList<int> taskIds;
+    QSqlQuery query(m_database);
+    query.prepare("SELECT task_id FROM task_folders WHERE folder_id = ?");
+    query.addBindValue(folderId);
+
+    if (query.exec()) {
+        while (query.next()) {
+            taskIds.append(query.value(0).toInt());
+        }
+    }
+
+    return taskIds;
 }

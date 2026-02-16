@@ -9,9 +9,9 @@
 ## 2. Core Models and Data Layer
 
 - [x] 2.1 Implement Task data model (task.h/cpp)
-- [ ] 2.2 Implement TaskModel (QStandardItemModel) for tree structure
-- [ ] 2.3 Implement Notification data model (notification.h/cpp)
-- [ ] 2.4 Implement Folder data model (folder.h/cpp)
+- [x] 2.2 Implement TaskModel (QStandardItemModel) for tree structure
+- [x] 2.3 Implement Notification data model (notification.h/cpp)
+- [x] 2.4 Implement Folder data model (folder.h/cpp)
 - [x] 2.5 Implement Database controller class (database.h/cpp)
 - [x] 2.6 Add database connection and query methods
 - [x] 2.7 Implement database initialization and table creation
@@ -20,20 +20,20 @@
 
 - [x] 3.1 Create MainWindow class (mainwindow.h/cpp)
 - [x] 3.2 Implement main window layout (sidebar + content area)
-- [ ] 3.3 Add top toolbar with search box and buttons
+- [x] 3.3 Add top toolbar with search box and buttons
 - [x] 3.4 Configure window size (1280x720) and minimum size (1024x768)
 - [x] 3.5 Implement window state persistence (size, position)
 
 ## 4. Sidebar Implementation
 
-- [ ] 4.1 Create Sidebar widget (sidebar.h/cpp)
-- [ ] 4.2 Implement time-based groups (Today, This Week, This Month, Overdue)
-- [ ] 4.3 Implement priority-based groups (High, Medium, Low)
-- [ ] 4.4 Implement status-based groups (Completed, Incomplete, In Progress)
-- [ ] 4.5 Implement tag-based grouping
-- [ ] 4.6 Add custom folder functionality (create, rename, delete)
-- [ ] 4.7 Implement sidebar width adjustment (280px default, resizable)
-- [ ] 4.8 Add collapse/expand sidebar functionality
+- [x] 4.1 Create Sidebar widget (sidebar.h/cpp)
+- [x] 4.2 Implement time-based groups (Today, This Week, This Month, Overdue)
+- [x] 4.3 Implement priority-based groups (High, Medium, Low)
+- [x] 4.4 Implement status-based groups (Completed, Incomplete, In Progress)
+- [x] 4.5 Implement tag-based grouping
+- [x] 4.6 Add custom folder functionality (create, rename, delete)
+- [x] 4.7 Implement sidebar width adjustment (280px default, resizable with QSplitter)
+- [x] 4.8 Add collapse/expand sidebar functionality
 
 ## 5. Task Tree View
 
@@ -46,15 +46,15 @@
 
 ## 6. Task Card Component
 
-- [ ] 6.1 Create TaskCard widget (taskcard.h/cpp)
-- [ ] 6.2 Implement task card layout (title, description, metadata)
-- [ ] 6.3 Add priority indicator with colors (red/amber/green)
-- [ ] 6.4 Add deadline display with date formatting
-- [ ] 6.5 Add progress bar (0-100%)
+- [x] 6.1 Create TaskCard widget (taskcard.h/cpp)
+- [x] 6.2 Implement task card layout (title, description, metadata)
+- [x] 6.3 Add priority indicator with colors (red/amber/green)
+- [x] 6.4 Add deadline display with date formatting
+- [x] 6.5 Add progress bar (0-100%)
 - [ ] 6.6 Add tags display
-- [ ] 6.7 Add completion checkbox
-- [ ] 6.8 Add edit and delete buttons
-- [ ] 6.9 Implement hover effects with theme colors
+- [x] 6.7 Add completion checkbox
+- [x] 6.8 Add edit and delete buttons
+- [x] 6.9 Implement hover effects with theme colors
 
 ## 7. Task Dialogs
 
@@ -146,7 +146,7 @@
 - [ ] 15.3 Add backup frequency configuration (hourly/daily/weekly)
 - [ ] 15.4 Implement backup time setting
 - [ ] 15.5 Add backup retention (keep N backups)
-- [ ] 15.6 Implement backup location configuration
+- [ ] 15.6 Add backup location configuration
 - [ ] 15.7 Add manual backup trigger
 - [ ] 15.8 Implement backup progress indication
 - [ ] 15.9 Add backup completion notification

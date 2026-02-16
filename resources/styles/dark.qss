@@ -1,3 +1,45 @@
+@import url(common.qss);
+
+:root {
+    --bg-primary: #0F172A;
+    --bg-secondary: #1E293B;
+    --bg-tertiary: #334155;
+    
+    --text-primary: #F8FAFC;
+    --text-secondary: #94A3B8;
+    --text-disabled: #64748B;
+    
+    --border-color: #334155;
+    
+    --color-primary: #3B82F6;
+    --color-primary-hover: #2563EB;
+    --color-primary-active: #1D4ED8;
+    --color-primary-light: #60A5FA;
+    --color-on-primary: #FFFFFF;
+    
+    --color-success: #10B981;
+    --color-success-hover: #059669;
+    
+    --color-warning: #F59E0B;
+    
+    --color-danger: #EF4444;
+    --color-danger-hover: #DC2626;
+    
+    --font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    --font-size-base: 14px;
+    
+    --spacing-xs: 4px;
+    --spacing-sm: 6px;
+    --spacing-md: 8px;
+    --spacing-lg: 12px;
+    --spacing-xl: 16px;
+    
+    --border-radius-xs: 4px;
+    --border-radius-sm: 6px;
+    --border-radius-md: 8px;
+    --border-radius-lg: 12px;
+}
+
 QMainWindow {
     background-color: #0F172A;
 }

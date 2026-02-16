@@ -24,6 +24,9 @@ set(SOURCES
     src/controllers/task_controller.cpp
     src/models/task.cpp
     src/models/tag.cpp
+    src/models/taskmodel.cpp
+    src/models/notification.cpp
+    src/models/folder.cpp
 )
 
 set(HEADERS
@@ -38,16 +41,23 @@ set(HEADERS
     src/controllers/task_controller.h
     src/models/task.h
     src/models/tag.h
+    src/models/taskmodel.h
+    src/models/notification.h
+    src/models/folder.h
 )
 
 set(UI_SOURCES
     src/views/mainwindow.cpp
+    src/views/sidebar.cpp
+    src/views/content_area.cpp
     src/views/task_list_widget.cpp
     src/views/task_card_widget.cpp
 )
 
 set(UI_HEADERS
     src/views/mainwindow.h
+    src/views/sidebar.h
+    src/views/content_area.h
     src/views/task_list_widget.h
     src/views/task_card_widget.h
 )

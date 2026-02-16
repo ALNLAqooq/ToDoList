@@ -9,6 +9,8 @@
 
 class Task;
 class Tag;
+class Notification;
+class Folder;
 
 class Database
 {
@@ -47,6 +49,26 @@ public:
     bool removeDependency(int taskId, int dependsOnId);
     bool addFileToTask(int taskId, const QString &filePath, const QString &fileName);
     bool removeFileFromTask(int fileId);
+
+    QList<Notification> getAllNotifications();
+    QList<Notification> getUnreadNotifications();
+    QList<Notification> getNotificationsByType(int type);
+    Notification getNotificationById(int id);
+    bool insertNotification(Notification &notification);
+    bool updateNotification(const Notification &notification);
+    bool deleteNotification(int id);
+    bool markNotificationAsRead(int id);
+    bool markAllNotificationsAsRead();
+    int getUnreadNotificationCount();
+
+    QList<Folder> getAllFolders();
+    Folder getFolderById(int id);
+    bool insertFolder(Folder &folder);
+    bool updateFolder(const Folder &folder);
+    bool deleteFolder(int id);
+    bool assignTaskToFolder(int taskId, int folderId);
+    bool removeTaskFromFolder(int taskId, int folderId);
+    QList<int> getTaskIdsByFolder(int folderId);
 
 private:
     Database();
