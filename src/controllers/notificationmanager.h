@@ -29,6 +29,7 @@ public:
     int unreadCount() const;
 
     void refresh();
+    void checkDeletionWarnings(int cleanupDays);
 
 signals:
     void notificationAdded(const Notification &notification);

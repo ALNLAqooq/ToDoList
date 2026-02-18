@@ -10,12 +10,16 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QToolButton>
+#include <QProgressDialog>
 #include <QMenu>
 #include <QWidgetAction>
 
 class Sidebar;
 class ContentArea;
 class NotificationPanel;
+class BackupManager;
+class SettingsDialog;
+class QProgressDialog;
 
 class MainWindow : public QMainWindow
 {
@@ -35,6 +39,10 @@ private slots:
     void onNotificationCountChanged(int count);
     void onNotificationPanelClose();
     void onThemeToggleClicked();
+    void onSettingsClicked();
+    void onBackupStarted();
+    void onBackupProgressChanged(int progress);
+    void onBackupFinished(bool success, const QString &backupPath, int result);
 
 private:
     void setupUI();
@@ -56,14 +64,18 @@ private:
     QToolBar *m_toolbar;
     QLineEdit *m_searchBox;
     QPushButton *m_newTaskButton;
-    QPushButton *m_collapseButton;
+    QToolButton *m_collapseButton;
     QToolButton *m_notificationButton;
     QLabel *m_notificationBadge;
     NotificationPanel *m_notificationPanel;
+    BackupManager *m_backupManager;
+    SettingsDialog *m_settingsDialog;
     
     QLineEdit *m_quickTaskInput;
     QPushButton *m_quickAddButton;
-    QPushButton *m_themeButton;
+    QToolButton *m_themeButton;
+    QToolButton *m_settingsButton;
+    QProgressDialog *m_backupDialog;
 };
 
 #endif // MAINWINDOW_H

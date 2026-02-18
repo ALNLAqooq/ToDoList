@@ -24,6 +24,9 @@ public:
 signals:
     void collapseRequested();
 
+private slots:
+    void onFileItemDoubleClicked(QListWidgetItem *item);
+
 private:
     void setupUI();
     void updateDisplay();
@@ -36,8 +39,12 @@ private:
     QLabel *m_descriptionLabel;
     QLabel *m_tagTitleLabel;
     QLabel *m_tagValueLabel;
+    QLabel *m_fileTitleLabel;
+    QListWidget *m_fileList;
     QLabel *m_subtaskTitleLabel;
     QListWidget *m_subtaskList;
+    QLabel *m_dependencyTitleLabel;
+    QListWidget *m_dependencyList;
     QLabel *m_priorityLabel;
     QLabel *m_deadlineLabel;
     QLabel *m_progressLabel;

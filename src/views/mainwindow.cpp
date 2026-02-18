@@ -3,6 +3,8 @@
 #include "content_area.h"
 #include "task_dialog.h"
 #include "notificationpanel.h"
+#include "settingsdialog.h"
+#include "../controllers/backupmanager.h"
 #include "../utils/logger.h"
 #include "../utils/theme_manager.h"
 #include "../controllers/task_controller.h"
@@ -12,6 +14,8 @@
 #include <QScreen>
 #include <QIcon>
 #include <QTimer>
+#include <QSize>
+#include <QProgressDialog>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -28,9 +32,13 @@ MainWindow::MainWindow(QWidget *parent)
     , m_notificationButton(nullptr)
     , m_notificationBadge(nullptr)
     , m_notificationPanel(nullptr)
+    , m_backupManager(nullptr)
+    , m_settingsDialog(nullptr)
     , m_quickTaskInput(nullptr)
     , m_quickAddButton(nullptr)
     , m_themeButton(nullptr)
+    , m_settingsButton(nullptr)
+    , m_backupDialog(nullptr)
 {
     loadSettings();
     setupUI();
@@ -38,6 +46,13 @@ MainWindow::MainWindow(QWidget *parent)
     setupLayout();
     setupBottomBar();
     setupNotificationButton();
+    m_backupManager = new BackupManager(this);
+    if (!m_backupManager->initialize()) {
+        LOG_ERROR("MainWindow", "Backup manager initialization failed");
+    }
+    connect(m_backupManager, &BackupManager::backupStarted, this, &MainWindow::onBackupStarted);
+    connect(m_backupManager, &BackupManager::backupProgressChanged, this, &MainWindow::onBackupProgressChanged);
+    connect(m_backupManager, &BackupManager::backupFinished, this, &MainWindow::onBackupFinished);
 }
 
 MainWindow::~MainWindow()
@@ -167,28 +182,53 @@ void MainWindow::setupToolbar()
     connect(m_newTaskButton, &QPushButton::clicked, this, &MainWindow::onNewTaskClicked);
     m_toolbar->addWidget(m_newTaskButton);
 
-    m_collapseButton = new QPushButton(this);
+    m_collapseButton = new QToolButton(this);
     m_collapseButton->setFixedSize(36, 36);
-    m_collapseButton->setText("◀");
+    const bool sidebarExpanded = m_sidebar && m_sidebar->isExpanded();
+    m_collapseButton->setText(QString::fromUtf8(sidebarExpanded ? "\xE2\x96\xB6" : "\xE2\x97\x80"));
+    m_collapseButton->setToolTip(QString::fromUtf8("\xE6\x94\xB6\xE8\xB5\xB7\xE4\xBE\xA7\xE8\xBE\xB9\xE6\xA0\x8F"));
     m_collapseButton->setProperty("iconButton", true);
-    connect(m_collapseButton, &QPushButton::clicked, this, &MainWindow::onCollapseRequested);
+    QFont collapseFont = m_collapseButton->font();
+    collapseFont.setPointSize(12);
+    m_collapseButton->setFont(collapseFont);
+    connect(m_collapseButton, &QToolButton::clicked, this, &MainWindow::onCollapseRequested);
     m_toolbar->addWidget(m_collapseButton);
 
     m_notificationButton = new QToolButton(this);
     m_notificationButton->setFixedSize(36, 36);
-    m_notificationButton->setText("🔔");
+    m_notificationButton->setText(QString::fromUtf8("\xF0\x9F\x94\x94"));
+    m_notificationButton->setToolTip(QString::fromUtf8("\xE9\x80\x9A\xE7\x9F\xA5"));
     m_notificationButton->setProperty("iconButton", true);
     m_notificationButton->setPopupMode(QToolButton::InstantPopup);
+    QFont notifFont = m_notificationButton->font();
+    notifFont.setPointSize(12);
+    m_notificationButton->setFont(notifFont);
     connect(m_notificationButton, &QToolButton::clicked, this, &MainWindow::onNotificationClicked);
     m_toolbar->addWidget(m_notificationButton);
 
-    m_themeButton = new QPushButton(this);
+
+    m_themeButton = new QToolButton(this);
     m_themeButton->setFixedSize(36, 36);
-    m_themeButton->setText("🌙");
-    m_themeButton->setToolTip("切换主题");
+    ThemeManager::Theme initTheme = ThemeManager::instance().currentTheme();
+    m_themeButton->setText(QString::fromUtf8(initTheme == ThemeManager::Light ? "\xE2\x98\x80\xEF\xB8\x8F" : "\xF0\x9F\x8C\x99"));
+    m_themeButton->setToolTip(QString::fromUtf8("\xE5\x88\x87\xE6\x8D\xA2\xE4\xB8\xBB\xE9\xA2\x98"));
     m_themeButton->setProperty("iconButton", true);
-    connect(m_themeButton, &QPushButton::clicked, this, &MainWindow::onThemeToggleClicked);
+    QFont themeFont = m_themeButton->font();
+    themeFont.setPointSize(12);
+    m_themeButton->setFont(themeFont);
+    connect(m_themeButton, &QToolButton::clicked, this, &MainWindow::onThemeToggleClicked);
     m_toolbar->addWidget(m_themeButton);
+
+    m_settingsButton = new QToolButton(this);
+    m_settingsButton->setFixedSize(36, 36);
+    m_settingsButton->setText(QString::fromUtf8("\xE2\x9A\x99\xEF\xB8\x8F"));
+    m_settingsButton->setToolTip(QString::fromUtf8("\xE8\xAE\xBE\xE7\xBD\xAE"));
+    m_settingsButton->setProperty("iconButton", true);
+    QFont settingsFont = m_settingsButton->font();
+    settingsFont.setPointSize(12);
+    m_settingsButton->setFont(settingsFont);
+    connect(m_settingsButton, &QToolButton::clicked, this, &MainWindow::onSettingsClicked);
+    m_toolbar->addWidget(m_settingsButton);
 
     LOG_INFO("MainWindow", "Main window toolbar setup complete");
 }
@@ -245,7 +285,7 @@ void MainWindow::onCollapseRequested()
 {
     bool isExpanded = m_sidebar->isExpanded();
     m_sidebar->setExpanded(!isExpanded);
-    m_collapseButton->setText(isExpanded ? "▶" : "◀");
+    m_collapseButton->setText(QString::fromUtf8(isExpanded ? "\xE2\x96\xB6" : "\xE2\x97\x80"));
     LOG_INFO("MainWindow", QString("Sidebar %1").arg(isExpanded ? "collapsed" : "expanded"));
 }
 
@@ -290,7 +330,7 @@ void MainWindow::setupNotificationButton()
 
     m_notificationBadge = new QLabel(m_notificationButton);
     m_notificationBadge->setFixedSize(18, 18);
-    m_notificationBadge->move(26, 0);
+    m_notificationBadge->move(18, 2);
     m_notificationBadge->setAlignment(Qt::AlignCenter);
     m_notificationBadge->setStyleSheet(
         "QLabel { background: #EF4444; color: white; border-radius: 9px; "
@@ -346,7 +386,59 @@ void MainWindow::onThemeToggleClicked()
     manager.toggleTheme();
 
     ThemeManager::Theme theme = manager.currentTheme();
-    m_themeButton->setText(theme == ThemeManager::Light ? "🌙" : "☀️");
+    if (m_themeButton) {
+        m_themeButton->setText(QString::fromUtf8(theme == ThemeManager::Light ? "\xE2\x98\x80\xEF\xB8\x8F" : "\xF0\x9F\x8C\x99"));
+    }
 
     LOG_INFO("MainWindow", QString("Theme toggled to: %1").arg(manager.themeName(theme)));
+}
+
+void MainWindow::onSettingsClicked()
+{
+    if (!m_settingsDialog) {
+        m_settingsDialog = new SettingsDialog(m_backupManager, this);
+    }
+    m_settingsDialog->show();
+    m_settingsDialog->raise();
+    m_settingsDialog->activateWindow();
+}
+
+
+void MainWindow::onBackupStarted()
+{
+    if (!m_backupDialog) {
+        m_backupDialog = new QProgressDialog(this);
+        m_backupDialog->setWindowTitle(QString::fromUtf8("\xE5\xA4\x87\xE4\xBB\xBD\xE4\xB8\xAD"));
+        m_backupDialog->setLabelText(QString::fromUtf8("\xE6\xAD\xA3\xE5\x9C\xA8\xE5\xA4\x87\xE4\xBB\xBD\xEF\xBC\x8C\xE8\xAF\xB7\xE7\xA8\x8D\xE5\x80\x99\x2E\x2E\x2E"));
+        m_backupDialog->setRange(0, 100);
+        m_backupDialog->setValue(0);
+        m_backupDialog->setCancelButton(nullptr);
+        m_backupDialog->setAutoClose(true);
+        m_backupDialog->setAutoReset(false);
+        m_backupDialog->setMinimumDuration(0);
+        m_backupDialog->setWindowModality(Qt::WindowModal);
+    }
+
+    m_backupDialog->setValue(0);
+    m_backupDialog->show();
+    m_backupDialog->raise();
+    m_backupDialog->activateWindow();
+}
+
+void MainWindow::onBackupProgressChanged(int progress)
+{
+    if (m_backupDialog) {
+        m_backupDialog->setValue(progress);
+    }
+}
+
+void MainWindow::onBackupFinished(bool success, const QString &backupPath, int result)
+{
+    Q_UNUSED(success);
+    Q_UNUSED(backupPath);
+    Q_UNUSED(result);
+    if (m_backupDialog) {
+        m_backupDialog->setValue(100);
+        m_backupDialog->close();
+    }
 }

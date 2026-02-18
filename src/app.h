@@ -19,6 +19,7 @@ private:
     void initSettings();
     void initTheme();
     void initWindow();
+    void runDeleteMaintenance();
 };
 
 #endif // APP_H

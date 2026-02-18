@@ -1,9 +1,17 @@
 #include "task_detail_widget.h"
 #include "../controllers/task_controller.h"
 #include "../models/tag.h"
+#include "../utils/file_utils.h"
 #include "../utils/logger.h"
 #include <QDate>
 #include <QHBoxLayout>
+#include <QFileInfo>
+#include <QIcon>
+#include <QColor>
+#include <QSize>
+#include <QDesktopServices>
+#include <QUrl>
+#include <QMessageBox>
 
 TaskDetailWidget::TaskDetailWidget(TaskController *controller, QWidget *parent)
     : QWidget(parent)
@@ -15,8 +23,12 @@ TaskDetailWidget::TaskDetailWidget(TaskController *controller, QWidget *parent)
     , m_descriptionLabel(nullptr)
     , m_tagTitleLabel(nullptr)
     , m_tagValueLabel(nullptr)
+    , m_fileTitleLabel(nullptr)
+    , m_fileList(nullptr)
     , m_subtaskTitleLabel(nullptr)
     , m_subtaskList(nullptr)
+    , m_dependencyTitleLabel(nullptr)
+    , m_dependencyList(nullptr)
     , m_priorityLabel(nullptr)
     , m_deadlineLabel(nullptr)
     , m_progressLabel(nullptr)
@@ -80,7 +92,29 @@ void TaskDetailWidget::setupUI()
     m_sourceLabel = new QLabel(this);
     m_sourceLabel->setObjectName("detailSourceLabel");
     m_sourceLabel->setWordWrap(true);
-    m_sourceLabel->hide();
+    if (m_currentTask.parentId() > 0 && m_controller) {
+        Task parentTask = m_controller->getTaskById(m_currentTask.parentId());
+        if (parentTask.id() > 0) {
+            QString timeStr;
+            if (parentTask.createdAt().isValid()) {
+                timeStr = parentTask.createdAt().toString("yyyy-MM-dd HH:mm");
+            }
+            QString info = timeStr.isEmpty()
+                ? parentTask.title()
+                : QString("%1 / %2").arg(timeStr, parentTask.title());
+            m_sourceLabel->setText(QString("来源任务: %1").arg(info));
+            if (timeStr.isEmpty()) {
+                m_sourceLabel->setToolTip(QString("父任务: %1").arg(parentTask.title()));
+            } else {
+                m_sourceLabel->setToolTip(QString("父任务: %1\n创建时间: %2").arg(parentTask.title(), timeStr));
+            }
+            m_sourceLabel->show();
+        } else {
+            m_sourceLabel->hide();
+        }
+    } else {
+        m_sourceLabel->hide();
+    }
 
     QLabel *descTitle = new QLabel("描述:", this);
     descTitle->setProperty("sectionTitle", true);
@@ -110,6 +144,28 @@ void TaskDetailWidget::setupUI()
     m_subtaskList->setObjectName("detailSubtaskList");
     m_subtaskList->hide();
 
+    m_fileTitleLabel = new QLabel("关联文件:", this);
+    m_fileTitleLabel->setProperty("sectionTitle", true);
+    m_fileTitleLabel->hide();
+
+    m_fileList = new QListWidget(this);
+    m_fileList->setSelectionMode(QAbstractItemView::NoSelection);
+    m_fileList->setMaximumHeight(140);
+    m_fileList->setIconSize(QSize(18, 18));
+    m_fileList->setObjectName("detailFileList");
+    m_fileList->hide();
+    connect(m_fileList, &QListWidget::itemDoubleClicked, this, &TaskDetailWidget::onFileItemDoubleClicked);
+
+    m_dependencyTitleLabel = new QLabel("任务依赖:", this);
+    m_dependencyTitleLabel->setProperty("sectionTitle", true);
+    m_dependencyTitleLabel->hide();
+
+    m_dependencyList = new QListWidget(this);
+    m_dependencyList->setSelectionMode(QAbstractItemView::NoSelection);
+    m_dependencyList->setMaximumHeight(140);
+    m_dependencyList->setObjectName("detailDependencyList");
+    m_dependencyList->hide();
+
     m_mainLayout->addLayout(headerLayout);
     m_mainLayout->addWidget(m_placeholderLabel);
     m_mainLayout->addWidget(m_titleLabel);
@@ -122,8 +178,12 @@ void TaskDetailWidget::setupUI()
     m_mainLayout->addWidget(m_descriptionLabel);
     m_mainLayout->addWidget(m_tagTitleLabel);
     m_mainLayout->addWidget(m_tagValueLabel);
+    m_mainLayout->addWidget(m_fileTitleLabel);
+    m_mainLayout->addWidget(m_fileList);
     m_mainLayout->addWidget(m_subtaskTitleLabel);
     m_mainLayout->addWidget(m_subtaskList);
+    m_mainLayout->addWidget(m_dependencyTitleLabel);
+    m_mainLayout->addWidget(m_dependencyList);
     m_mainLayout->addStretch();
 }
 
@@ -141,8 +201,12 @@ void TaskDetailWidget::clearTask()
     m_descriptionLabel->hide();
     m_tagTitleLabel->hide();
     m_tagValueLabel->hide();
+    m_fileTitleLabel->hide();
+    m_fileList->hide();
     m_subtaskTitleLabel->hide();
     m_subtaskList->hide();
+    m_dependencyTitleLabel->hide();
+    m_dependencyList->hide();
     m_priorityLabel->hide();
     m_deadlineLabel->hide();
     m_progressLabel->hide();
@@ -193,29 +257,8 @@ void TaskDetailWidget::updateDisplay()
     m_progressLabel->setText(QString("进度: %1%").arg(static_cast<int>(m_currentTask.progress() * 100)));
     m_progressLabel->show();
 
-    if (m_currentTask.parentId() > 0 && m_controller) {
-        Task parentTask = m_controller->getTaskById(m_currentTask.parentId());
-        if (parentTask.id() > 0) {
-            QString timeStr;
-            if (parentTask.createdAt().isValid()) {
-                timeStr = parentTask.createdAt().toString("yyyy-MM-dd HH:mm");
-            }
-            QString info = timeStr.isEmpty()
-                ? parentTask.title()
-                : QString("%1 / %2").arg(timeStr, parentTask.title());
-            m_sourceLabel->setText(QString("来源任务: %1").arg(info));
-            if (timeStr.isEmpty()) {
-                m_sourceLabel->setToolTip(QString("父任务: %1").arg(parentTask.title()));
-            } else {
-                m_sourceLabel->setToolTip(QString("父任务: %1\n创建时间: %2").arg(parentTask.title(), timeStr));
-            }
-            m_sourceLabel->show();
-        } else {
-            m_sourceLabel->hide();
-        }
-    } else {
-        m_sourceLabel->hide();
-    }
+    m_sourceLabel->hide();
+
 
     if (!m_currentTask.description().isEmpty()) {
         m_descriptionLabel->setText(m_currentTask.description());
@@ -239,6 +282,40 @@ void TaskDetailWidget::updateDisplay()
             m_tagValueLabel->show();
         }
 
+        Task taskWithFiles = m_controller->getTaskById(m_currentTask.id());
+        QList<QString> filePaths = taskWithFiles.filePaths();
+        m_fileList->clear();
+        if (filePaths.isEmpty()) {
+            m_fileTitleLabel->hide();
+            m_fileList->hide();
+        } else {
+            for (const QString &filePath : filePaths) {
+                QFileInfo fileInfo(filePath);
+                QString fileName = fileInfo.fileName();
+                if (fileName.isEmpty()) {
+                    fileName = filePath;
+                }
+
+                auto *item = new QListWidgetItem(fileName);
+                item->setIcon(QIcon(FileUtils::getFileIconPath(filePath)));
+                item->setData(Qt::UserRole, filePath);
+
+                if (!fileInfo.exists()) {
+                    item->setForeground(QColor("#DC2626"));
+                    item->setText(fileName + " (缺失)");
+                    item->setToolTip(QString("缺失文件:\n%1").arg(filePath));
+                } else {
+                    QString typeLabel = FileUtils::getFileType(filePath);
+                    QString sizeLabel = FileUtils::fileSizeFormatted(fileInfo.size());
+                    item->setToolTip(QString("%1\n%2 · %3").arg(filePath, typeLabel, sizeLabel));
+                }
+
+                m_fileList->addItem(item);
+            }
+            m_fileTitleLabel->show();
+            m_fileList->show();
+        }
+
         QList<Task> subtasks = m_controller->getSubTasks(m_currentTask.id());
         m_subtaskList->clear();
         for (const Task &subtask : subtasks) {
@@ -255,12 +332,54 @@ void TaskDetailWidget::updateDisplay()
             m_subtaskTitleLabel->show();
             m_subtaskList->show();
         }
+
+        QList<Task> dependencies = m_controller->getDependenciesForTask(m_currentTask.id());
+        m_dependencyList->clear();
+        if (dependencies.isEmpty()) {
+            m_dependencyTitleLabel->hide();
+            m_dependencyList->hide();
+        } else {
+            for (const Task &dependency : dependencies) {
+                QString title = dependency.title();
+                if (dependency.isCompleted()) {
+                    title += " (已完成)";
+                }
+                m_dependencyList->addItem(title);
+            }
+            m_dependencyTitleLabel->show();
+            m_dependencyList->show();
+        }
     } else {
         m_tagTitleLabel->hide();
         m_tagValueLabel->hide();
+        m_fileTitleLabel->hide();
+        m_fileList->hide();
         m_subtaskTitleLabel->hide();
         m_subtaskList->hide();
+        m_dependencyTitleLabel->hide();
+        m_dependencyList->hide();
     }
 
+
     LOG_INFO("TaskDetailWidget", QString("Task detail updated: %1").arg(m_currentTask.title()));
+}
+
+void TaskDetailWidget::onFileItemDoubleClicked(QListWidgetItem *item)
+{
+    if (!item) {
+        return;
+    }
+
+    QString filePath = item->data(Qt::UserRole).toString();
+    if (filePath.isEmpty()) {
+        return;
+    }
+
+    QFileInfo fileInfo(filePath);
+    if (!fileInfo.exists()) {
+        QMessageBox::warning(this, "提示", "文件不存在: " + filePath);
+        return;
+    }
+
+    QDesktopServices::openUrl(QUrl::fromLocalFile(filePath));
 }

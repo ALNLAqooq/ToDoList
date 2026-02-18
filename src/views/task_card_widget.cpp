@@ -109,6 +109,18 @@ void TaskCardWidget::setupUI()
     m_tagsLayout->addStretch();
     updateTagsDisplay();
 
+    m_dependenciesWidget = new QWidget(this);
+    m_dependenciesLayout = new QHBoxLayout(m_dependenciesWidget);
+    m_dependenciesLayout->setSpacing(6);
+    m_dependenciesLayout->setContentsMargins(0, 0, 0, 0);
+
+    m_circularDepsWidget = new QWidget(this);
+    m_circularDepsLayout = new QHBoxLayout(m_circularDepsWidget);
+    m_circularDepsLayout->setSpacing(6);
+    m_circularDepsLayout->setContentsMargins(0, 0, 0, 0);
+
+    updateDependenciesDisplay();
+
     mainLayout->addLayout(headerLayout);
 
     if (m_descriptionLabel) {
@@ -117,6 +129,8 @@ void TaskCardWidget::setupUI()
 
     mainLayout->addWidget(m_progressBar);
     mainLayout->addWidget(m_tagsWidget);
+    mainLayout->addWidget(m_dependenciesWidget);
+    mainLayout->addWidget(m_circularDepsWidget);
 
     connect(m_checkBox, &QCheckBox::stateChanged, this, &TaskCardWidget::onCheckBoxChanged);
     connect(m_editButton, &QPushButton::clicked, this, &TaskCardWidget::onEditClicked);
@@ -146,6 +160,7 @@ void TaskCardWidget::updateTask(const Task &task)
     updateDueDateDisplay();
     updateProgressDisplay();
     updateTagsDisplay();
+    updateDependenciesDisplay();
 
     if (m_completed) {
         m_titleLabel->setStyleSheet("color: #94A3B8; text-decoration: line-through;");
@@ -300,6 +315,78 @@ void TaskCardWidget::updateTagsDisplay()
     }
 
     m_tagsWidget->setVisible(!m_tags.isEmpty());
+}
+
+void TaskCardWidget::updateDependenciesDisplay()
+{
+    m_dependencies = m_controller->getDependenciesForTask(m_taskId);
+    m_circularDependencies = m_controller->getCircularDependencies(m_taskId);
+
+    for (int i = m_dependenciesLayout->count() - 1; i >= 0; i--) {
+        QLayoutItem *item = m_dependenciesLayout->takeAt(i);
+        if (item->widget()) {
+            item->widget()->deleteLater();
+        }
+        delete item;
+    }
+
+    if (m_dependencies.isEmpty()) {
+        m_dependenciesWidget->setVisible(false);
+    } else {
+        QLabel *label = new QLabel("Dependencies:", this);
+        label->setStyleSheet("color: #94A3B8; font-size: 11px;");
+        m_dependenciesLayout->addWidget(label);
+
+        for (const Task &task : m_dependencies) {
+            QLabel *depLabel = new QLabel(task.title(), this);
+            depLabel->setStyleSheet(R"(
+                QLabel {
+                    background-color: #1F2937;
+                    color: #E5E7EB;
+                    padding: 2px 8px;
+                    border-radius: 4px;
+                    font-size: 11px;
+                }
+            )");
+            m_dependenciesLayout->addWidget(depLabel);
+        }
+
+        m_dependenciesLayout->addStretch();
+        m_dependenciesWidget->setVisible(true);
+    }
+
+    for (int i = m_circularDepsLayout->count() - 1; i >= 0; i--) {
+        QLayoutItem *item = m_circularDepsLayout->takeAt(i);
+        if (item->widget()) {
+            item->widget()->deleteLater();
+        }
+        delete item;
+    }
+
+    if (m_circularDependencies.isEmpty()) {
+        m_circularDepsWidget->setVisible(false);
+    } else {
+        QLabel *label = new QLabel("Circular:", this);
+        label->setStyleSheet("color: #FCA5A5; font-size: 11px;");
+        m_circularDepsLayout->addWidget(label);
+
+        for (const Task &task : m_circularDependencies) {
+            QLabel *depLabel = new QLabel(task.title(), this);
+            depLabel->setStyleSheet(R"(
+                QLabel {
+                    background-color: #7F1D1D;
+                    color: #FEE2E2;
+                    padding: 2px 8px;
+                    border-radius: 4px;
+                    font-size: 11px;
+                }
+            )");
+            m_circularDepsLayout->addWidget(depLabel);
+        }
+
+        m_circularDepsLayout->addStretch();
+        m_circularDepsWidget->setVisible(true);
+    }
 }
 
 void TaskCardWidget::onCheckBoxChanged(int state)

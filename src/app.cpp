@@ -3,6 +3,7 @@
 #include "utils/logger.h"
 #include "utils/theme_manager.h"
 #include "views/mainwindow.h"
+#include "controllers/notificationmanager.h"
 #include <QApplication>
 #include <QSettings>
 
@@ -22,6 +23,7 @@ void App::init()
     initSettings();
     initTheme();
     initWindow();
+    runDeleteMaintenance();
 
     LOG_INFO("App", "Application initialized successfully");
 }
@@ -83,4 +85,19 @@ void App::initWindow()
     window->show();
 
     LOG_INFO("Window", "Main window created and shown");
+}
+
+void App::runDeleteMaintenance()
+{
+    Database &db = Database::instance();
+    int cleanupDays = db.getSetting("delete_cleanup_days", "14").toInt();
+    bool autoCleanup = db.getSetting("delete_auto_cleanup", "1") == "1";
+
+    if (autoCleanup) {
+        NotificationManager::instance().checkDeletionWarnings(cleanupDays);
+        int removed = db.cleanupDeletedTasks(cleanupDays);
+        if (removed > 0) {
+            LOG_INFO("App", QString("Auto-cleaned %1 deleted tasks").arg(removed));
+        }
+    }
 }

@@ -221,12 +221,19 @@ void NotificationPanel::refresh()
 
 void NotificationPanel::loadNotifications()
 {
-    qDeleteAll(m_notificationItems);
     m_notificationItems.clear();
+
+    while (QLayoutItem *item = m_contentLayout->takeAt(0)) {
+        QWidget *widget = item->widget();
+        if (widget && widget != m_emptyLabel) {
+            widget->deleteLater();
+        }
+        delete item;
+    }
 
     QList<Notification> notifications = m_manager.getAllNotifications();
 
-    m_contentLayout->removeWidget(m_emptyLabel);
+    m_contentLayout->addWidget(m_emptyLabel);
 
     for (const Notification &notif : notifications) {
         NotificationItem *item = new NotificationItem(notif, this);

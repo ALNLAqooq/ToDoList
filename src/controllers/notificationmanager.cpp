@@ -1,5 +1,7 @@
 #include "notificationmanager.h"
 #include "../utils/logger.h"
+#include <QSqlQuery>
+#include <QDateTime>
 
 NotificationManager& NotificationManager::instance()
 {
@@ -143,6 +145,48 @@ void NotificationManager::refresh()
 {
     updateUnreadCount();
     emit notificationsUpdated();
+}
+
+void NotificationManager::checkDeletionWarnings(int cleanupDays)
+{
+    if (cleanupDays <= 0) {
+        return;
+    }
+
+    QSqlQuery query(m_database.database());
+    query.prepare("SELECT id, title, deleted_at FROM tasks WHERE is_deleted = 1 AND deleted_at IS NOT NULL");
+    if (!query.exec()) {
+        return;
+    }
+
+    const QDateTime now = QDateTime::currentDateTime();
+    while (query.next()) {
+        int taskId = query.value(0).toInt();
+        QString title = query.value(1).toString();
+        QString deletedAtStr = query.value(2).toString();
+        QDateTime deletedAt = QDateTime::fromString(deletedAtStr, Qt::ISODate);
+        if (!deletedAt.isValid()) {
+            continue;
+        }
+
+        int daysElapsed = deletedAt.daysTo(now);
+        int remaining = cleanupDays - daysElapsed;
+        if (remaining != 3 && remaining != 1) {
+            continue;
+        }
+
+        QString message = QString("任务 \"%1\" 将在 %2 天后永久删除。").arg(title).arg(remaining);
+        QSqlQuery existsQuery(m_database.database());
+        existsQuery.prepare("SELECT 1 FROM notifications WHERE type = ? AND task_id = ? AND message = ? LIMIT 1");
+        existsQuery.addBindValue(static_cast<int>(Notification::DeleteWarning));
+        existsQuery.addBindValue(taskId);
+        existsQuery.addBindValue(message);
+        if (existsQuery.exec() && existsQuery.next()) {
+            continue;
+        }
+
+        addNotification(Notification::DeleteWarning, "删除提醒", message, taskId);
+    }
 }
 
 void NotificationManager::updateUnreadCount()

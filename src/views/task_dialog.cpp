@@ -1,11 +1,15 @@
 #include "task_dialog.h"
 #include "../controllers/database.h"
+#include "../utils/file_utils.h"
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QDesktopServices>
 #include <QUrl>
 #include <QScrollBar>
+#include <QHash>
 #include <QSet>
+#include <QColor>
+#include <QSize>
 
 TaskDialog::TaskDialog(TaskController *controller, int taskId, QWidget *parent)
     : QDialog(parent)
@@ -331,6 +335,7 @@ void TaskDialog::setupDetailsTab()
 
     m_fileList = new QListWidget(m_detailsTab);
     m_fileList->setMaximumHeight(100);
+    m_fileList->setIconSize(QSize(18, 18));
     m_fileList->setStyleSheet(R"(
         QListWidget {
             border: 1px solid #D1D5DB;
@@ -506,7 +511,7 @@ void TaskDialog::loadTaskData()
 
     m_selectedTagIds = m_currentTask.tagIds();
     m_filePaths = m_currentTask.filePaths();
-    m_selectedDependencyIds = m_currentTask.dependencyIds();
+    m_selectedDependencyIds = m_controller->getDependencyIdsForTask(m_taskId);
 
     loadTags();
     loadFileList();
@@ -539,19 +544,35 @@ void TaskDialog::loadTasksForDependency()
     m_dependencyList->clear();
 
     QList<Task> tasks = m_controller->getAllTasks();
-    for (const Task &task : tasks) {
-        if (task.id() != m_taskId) {
-            m_taskCombo->addItem(task.title(), task.id());
+    QHash<int, QString> taskTitles;
+    QSet<int> circularIds;
+
+    if (m_taskId > 0) {
+        QList<Task> circularTasks = m_controller->getCircularDependencies(m_taskId);
+        for (const Task &task : circularTasks) {
+            circularIds.insert(task.id());
         }
     }
 
-    for (int depId : m_selectedDependencyIds) {
-        for (int i = 0; i < m_taskCombo->count(); ++i) {
-            if (m_taskCombo->itemData(i).toInt() == depId) {
-                m_dependencyList->addItem(m_taskCombo->itemText(i));
-                break;
-            }
+    for (const Task &task : tasks) {
+        taskTitles.insert(task.id(), task.title());
+        if (task.id() == m_taskId) {
+            continue;
         }
+
+        if (m_taskId > 0 && m_controller->wouldCreateCircularDependency(m_taskId, task.id())) {
+            continue;
+        }
+
+        m_taskCombo->addItem(task.title(), task.id());
+    }
+
+    for (int depId : m_selectedDependencyIds) {
+        QString title = taskTitles.value(depId, QString("Task %1").arg(depId));
+        if (circularIds.contains(depId)) {
+            title += " (circular)";
+        }
+        m_dependencyList->addItem(title);
     }
 }
 
@@ -560,7 +581,26 @@ void TaskDialog::loadFileList()
     m_fileList->clear();
     for (const QString &filePath : m_filePaths) {
         QFileInfo fileInfo(filePath);
-        m_fileList->addItem(fileInfo.fileName());
+        QString fileName = fileInfo.fileName();
+        if (fileName.isEmpty()) {
+            fileName = filePath;
+        }
+
+        auto *item = new QListWidgetItem(fileName);
+        item->setData(Qt::UserRole, filePath);
+        item->setIcon(QIcon(FileUtils::getFileIconPath(filePath)));
+
+        if (!fileInfo.exists()) {
+            item->setForeground(QColor("#DC2626"));
+            item->setText(fileName + " (missing)");
+            item->setToolTip(QString("Missing file:\n%1").arg(filePath));
+        } else {
+            QString typeLabel = FileUtils::getFileType(filePath);
+            QString sizeLabel = FileUtils::fileSizeFormatted(fileInfo.size());
+            item->setToolTip(QString("%1\n%2 · %3").arg(filePath, typeLabel, sizeLabel));
+        }
+
+        m_fileList->addItem(item);
     }
 }
 
@@ -616,6 +656,43 @@ void TaskDialog::onSaveClicked()
     if (m_titleEdit->text().trimmed().isEmpty()) {
         QMessageBox::warning(this, "警告", "任务标题不能为空");
         return;
+    }
+
+    
+    QStringList missingFiles;
+    for (const QString &filePath : m_filePaths) {
+        if (!FileUtils::exists(filePath)) {
+            missingFiles.append(filePath);
+        }
+    }
+
+    if (!missingFiles.isEmpty()) {
+        QMessageBox dialog(this);
+        dialog.setIcon(QMessageBox::Warning);
+        dialog.setWindowTitle("Missing Files");
+        dialog.setText("Some attached files are missing.");
+        dialog.setInformativeText(missingFiles.join("\n"));
+        QPushButton *keepButton = dialog.addButton("Keep", QMessageBox::AcceptRole);
+        QPushButton *removeButton = dialog.addButton("Remove Missing", QMessageBox::DestructiveRole);
+        QPushButton *cancelButton = dialog.addButton("Cancel", QMessageBox::RejectRole);
+        dialog.setDefaultButton(keepButton);
+        dialog.exec();
+
+        if (dialog.clickedButton() == cancelButton) {
+            return;
+        }
+
+        if (dialog.clickedButton() == removeButton) {
+            QSet<QString> missingSet(missingFiles.begin(), missingFiles.end());
+            QList<QString> filtered;
+            for (const QString &filePath : m_filePaths) {
+                if (!missingSet.contains(filePath)) {
+                    filtered.append(filePath);
+                }
+            }
+            m_filePaths = filtered;
+            loadFileList();
+        }
     }
 
     Task task = getTask();
@@ -697,39 +774,52 @@ void TaskDialog::onCancelClicked()
 
 void TaskDialog::onBrowseFileClicked()
 {
-    QString filePath = QFileDialog::getOpenFileName(this, "选择文件", "", "All Files (*)");
+    QString filePath = QFileDialog::getOpenFileName(this, "Select File", "", "All Files (*)");
     if (!filePath.isEmpty()) {
-        if (!m_filePaths.contains(filePath)) {
-            m_filePaths.append(filePath);
+        QString normalizedPath = FileUtils::normalizePath(filePath);
+        if (!FileUtils::exists(normalizedPath) || !FileUtils::isFile(normalizedPath)) {
+            QMessageBox::warning(this, "Warning", "The selected file does not exist.");
+            return;
+        }
+
+        if (!m_filePaths.contains(normalizedPath)) {
+            m_filePaths.append(normalizedPath);
             loadFileList();
         } else {
-            QMessageBox::warning(this, "警告", "该文件已添加");
+            QMessageBox::warning(this, "Warning", "File already added.");
         }
     }
 }
 
+
 void TaskDialog::onRemoveFileClicked()
 {
-    int currentRow = m_fileList->currentRow();
-    if (currentRow >= 0 && currentRow < m_filePaths.size()) {
-        m_filePaths.removeAt(currentRow);
+    QListWidgetItem *item = m_fileList->currentItem();
+    if (item) {
+        QString filePath = item->data(Qt::UserRole).toString();
+        int index = m_filePaths.indexOf(filePath);
+        if (index >= 0) {
+            m_filePaths.removeAt(index);
+        }
         loadFileList();
     }
 }
 
+
 void TaskDialog::onOpenFileClicked()
 {
-    int currentRow = m_fileList->currentRow();
-    if (currentRow >= 0 && currentRow < m_filePaths.size()) {
-        QString filePath = m_filePaths[currentRow];
+    QListWidgetItem *item = m_fileList->currentItem();
+    if (item) {
+        QString filePath = item->data(Qt::UserRole).toString();
         QFileInfo fileInfo(filePath);
         if (fileInfo.exists()) {
             QDesktopServices::openUrl(QUrl::fromLocalFile(filePath));
         } else {
-            QMessageBox::warning(this, "警告", "文件不存在：" + filePath);
+            QMessageBox::warning(this, "Warning", "File not found: " + filePath);
         }
     }
 }
+
 
 void TaskDialog::onAddTagClicked()
 {
@@ -810,6 +900,15 @@ void TaskDialog::onAddDependencyClicked()
 {
     int depId = m_taskCombo->currentData().toInt();
     QString depName = m_taskCombo->currentText();
+
+    if (depId <= 0) {
+        return;
+    }
+
+    if (m_taskId > 0 && m_controller->wouldCreateCircularDependency(m_taskId, depId)) {
+        QMessageBox::warning(this, "Warning", "Dependency would create a circular reference.");
+        return;
+    }
 
     if (!m_selectedDependencyIds.contains(depId)) {
         m_selectedDependencyIds.append(depId);

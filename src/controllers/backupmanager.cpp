@@ -1,6 +1,7 @@
 #include "backupmanager.h"
 #include "database.h"
 #include "../models/notification.h"
+#include "../controllers/notificationmanager.h"
 #include "../utils/file_utils.h"
 #include <QFile>
 #include <QFileInfo>
@@ -211,24 +212,24 @@ BackupManager::BackupResult BackupManager::performBackup(const QString &descript
     if (result == Success) {
         saveBackupHistory(backupPath, description);
         cleanupOldBackups();
-        sendBackupNotification(tr("Backup completed successfully: %1").arg(backupFileName), true);
+        sendBackupNotification(QString::fromUtf8("\xE5\xA4\x87\xE4\xBB\xBD\xE5\xAE\x8C\xE6\x88\x90\xEF\xBC\x9A\x25\x31").arg(backupFileName), true);
     } else {
         QString errorMessage;
         switch (result) {
             case FailedDiskFull:
-                errorMessage = tr("Backup failed: Insufficient disk space");
+                errorMessage = QString::fromUtf8("\xE5\xA4\x87\xE4\xBB\xBD\xE5\xA4\xB1\xE8\xB4\xA5\xEF\xBC\x9A\xE7\xA3\x81\xE7\x9B\x98\xE7\xA9\xBA\xE9\x97\xB4\xE4\xB8\x8D\xE8\xB6\xB3");
                 break;
             case FailedPermission:
-                errorMessage = tr("Backup failed: Permission denied");
+                errorMessage = QString::fromUtf8("\xE5\xA4\x87\xE4\xBB\xBD\xE5\xA4\xB1\xE8\xB4\xA5\xEF\xBC\x9A\xE6\x9D\x83\xE9\x99\x90\xE4\xB8\x8D\xE8\xB6\xB3");
                 break;
             case FailedDatabaseLocked:
-                errorMessage = tr("Backup failed: Database is locked");
+                errorMessage = QString::fromUtf8("\xE5\xA4\x87\xE4\xBB\xBD\xE5\xA4\xB1\xE8\xB4\xA5\xEF\xBC\x9A\xE6\x95\xB0\xE6\x8D\xAE\xE5\xBA\x93\xE8\xA2\xAB\xE5\x8D\xA0\xE7\x94\xA8");
                 break;
             case FailedInvalidPath:
-                errorMessage = tr("Backup failed: Invalid backup path");
+                errorMessage = QString::fromUtf8("\xE5\xA4\x87\xE4\xBB\xBD\xE5\xA4\xB1\xE8\xB4\xA5\xEF\xBC\x9A\xE5\xA4\x87\xE4\xBB\xBD\xE8\xB7\xAF\xE5\xBE\x84\xE6\x97\xA0\xE6\x95\x88");
                 break;
             default:
-                errorMessage = tr("Backup failed: Unknown error");
+                errorMessage = QString::fromUtf8("\xE5\xA4\x87\xE4\xBB\xBD\xE5\xA4\xB1\xE8\xB4\xA5\xEF\xBC\x9A\xE6\x9C\xAA\xE7\x9F\xA5\xE9\x94\x99\xE8\xAF\xAF");
                 break;
         }
         sendBackupNotification(errorMessage, false);
@@ -535,8 +536,8 @@ void BackupManager::saveBackupHistory(const QString &backupPath, const QString &
 
 bool BackupManager::sendBackupNotification(const QString &message, bool success)
 {
-    Notification notification(0, Notification::Backup, success ? tr("Backup Complete") : tr("Backup Failed"));
-    notification.setMessage(message);
-
-    return m_database->insertNotification(notification);
+    NotificationManager &manager = NotificationManager::instance();
+    return manager.addNotification(Notification::Backup,
+                                   success ? QString::fromUtf8("\xE5\xA4\x87\xE4\xBB\xBD\xE5\xAE\x8C\xE6\x88\x90") : QString::fromUtf8("\xE5\xA4\x87\xE4\xBB\xBD\xE5\xA4\xB1\xE8\xB4\xA5"),
+                                   message);
 }

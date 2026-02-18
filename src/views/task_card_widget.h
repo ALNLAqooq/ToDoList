@@ -37,6 +37,7 @@ private:
     void updateDueDateDisplay();
     void updateProgressDisplay();
     void updateTagsDisplay();
+    void updateDependenciesDisplay();
 
     TaskController *m_controller;
     int m_taskId;
@@ -47,6 +48,8 @@ private:
     bool m_completed;
     double m_progress;
     QList<Tag> m_tags;
+    QList<Task> m_dependencies;
+    QList<Task> m_circularDependencies;
 
     QCheckBox *m_checkBox;
     QLabel *m_titleLabel;
@@ -58,6 +61,10 @@ private:
     QPushButton *m_deleteButton;
     QWidget *m_tagsWidget;
     QHBoxLayout *m_tagsLayout;
+    QWidget *m_dependenciesWidget;
+    QHBoxLayout *m_dependenciesLayout;
+    QWidget *m_circularDepsWidget;
+    QHBoxLayout *m_circularDepsLayout;
 };
 
 #endif // TASK_CARD_WIDGET_H

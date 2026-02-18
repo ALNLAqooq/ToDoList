@@ -153,7 +153,9 @@ void ContentArea::onTaskSelected(int taskId)
     if (taskId > 0) {
         showTaskDetailPanel();
         m_currentTaskId = taskId;
-        Task task = m_controller->getTaskById(taskId);
+        Task task = (m_currentGroup == "回收站")
+            ? m_controller->getTaskByIdIncludingDeleted(taskId)
+            : m_controller->getTaskById(taskId);
         m_taskDetailWidget->setTask(task);
     } else {
         m_currentTaskId = 0;
@@ -173,6 +175,32 @@ void ContentArea::onContextMenuRequested(const QPoint &pos, int taskId)
     LOG_INFO("ContentArea", QString("Context menu requested for task: %1").arg(taskId));
     
     QMenu menu(this);
+
+    if (m_currentGroup == "回收站") {
+        QAction *restoreAction = new QAction("恢复任务", this);
+        connect(restoreAction, &QAction::triggered, this, [this, taskId]() {
+            if (m_controller->restoreTask(taskId)) {
+                m_taskTree->refreshTasks();
+                emit tagsChanged();
+            }
+        });
+
+        QAction *permanentDeleteAction = new QAction("永久删除", this);
+        connect(permanentDeleteAction, &QAction::triggered, this, [this, taskId]() {
+            QMessageBox::StandardButton reply = QMessageBox::question(
+                this, "确认永久删除",
+                "该任务将被永久删除且无法恢复，确定继续吗？",
+                QMessageBox::Yes | QMessageBox::No);
+            if (reply == QMessageBox::Yes) {
+                m_controller->permanentlyDeleteTask(taskId);
+            }
+        });
+
+        menu.addAction(restoreAction);
+        menu.addAction(permanentDeleteAction);
+        menu.exec(QCursor::pos());
+        return;
+    }
     
     QAction *editAction = new QAction("编辑任务", this);
     connect(editAction, &QAction::triggered, this, [this, taskId]() {

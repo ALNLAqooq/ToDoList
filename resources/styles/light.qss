@@ -931,6 +931,24 @@ QListWidget#detailSubtaskList {
     color: #334155;
 }
 
+QListWidget#detailFileList {
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    background-color: #FFFFFF;
+    padding: 6px;
+    font-size: 13px;
+    color: #334155;
+}
+
+QListWidget#detailDependencyList {
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    background-color: #FFFFFF;
+    padding: 6px;
+    font-size: 13px;
+    color: #334155;
+}
+
 #detailCollapseButton {
     background-color: #F1F5F9;
     color: #475569;

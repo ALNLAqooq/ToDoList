@@ -34,11 +34,14 @@ public:
 
     QList<Task> getAllTasks();
     QList<Task> getTasksByParentId(int parentId);
-    Task getTaskById(int id);
+    Task getTaskById(int id, bool includeDeleted = false);
     QList<Task> getTaskHierarchy(int rootId = 0);
     bool insertTask(Task &task);
     bool updateTask(const Task &task);
     bool deleteTask(int id);
+    bool restoreTask(int id);
+    bool permanentlyDeleteTask(int id, int parentAction = -1);
+    int cleanupDeletedTasks(int days);
     double calculateProgress(int taskId);
     double calculateParentProgress(int taskId);
 
@@ -59,6 +62,10 @@ public:
     bool addDependency(int taskId, int dependsOnId);
     bool removeDependency(int taskId, int dependsOnId);
     bool removeAllDependenciesFromTask(int taskId);
+    QList<int> getDependencyIdsForTask(int taskId);
+    QList<Task> getDependenciesForTask(int taskId);
+    bool wouldCreateCircularDependency(int taskId, int dependsOnId);
+    QList<Task> getCircularDependencies(int taskId);
     bool addFileToTask(int taskId, const QString &filePath, const QString &fileName);
     bool removeFileFromTask(int fileId);
     bool removeAllFilesFromTask(int taskId);

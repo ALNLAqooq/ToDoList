@@ -105,6 +105,9 @@ void Sidebar::setupGroups()
         m_groupsList->addItem(item);
     }
 
+    QListWidgetItem *recycleItem = new QListWidgetItem("回收站", m_groupsList);
+    m_groupsList->addItem(recycleItem);
+
     connect(m_groupsList, &QListWidget::itemClicked, this, &Sidebar::onItemClicked);
 
     LOG_INFO("Sidebar", "Groups setup complete");

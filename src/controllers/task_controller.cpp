@@ -26,6 +26,11 @@ Task TaskController::getTaskById(int id)
     return Database::instance().getTaskById(id);
 }
 
+Task TaskController::getTaskByIdIncludingDeleted(int id)
+{
+    return Database::instance().getTaskById(id, true);
+}
+
 QList<Task> TaskController::getTaskHierarchy(int rootId)
 {
     return Database::instance().getTaskHierarchy(rootId);
@@ -53,6 +58,35 @@ bool TaskController::deleteTask(int id)
 {
     Task task = getTaskById(id);
     if (Database::instance().deleteTask(id)) {
+        emit taskDeleted(id);
+        if (task.parentId() > 0) {
+            updateParentProgress(task.parentId());
+        }
+        return true;
+    }
+    return false;
+}
+
+bool TaskController::restoreTask(int id)
+{
+    Task task = Database::instance().getTaskById(id, true);
+    if (Database::instance().restoreTask(id)) {
+        Task restored = getTaskById(id);
+        if (restored.id() > 0) {
+            emit taskUpdated(restored);
+        }
+        if (task.parentId() > 0) {
+            updateParentProgress(task.parentId());
+        }
+        return true;
+    }
+    return false;
+}
+
+bool TaskController::permanentlyDeleteTask(int id)
+{
+    Task task = Database::instance().getTaskById(id, true);
+    if (Database::instance().permanentlyDeleteTask(id)) {
         emit taskDeleted(id);
         if (task.parentId() > 0) {
             updateParentProgress(task.parentId());
@@ -146,6 +180,26 @@ bool TaskController::removeDependency(int taskId, int dependsOnId)
         return true;
     }
     return false;
+}
+
+QList<int> TaskController::getDependencyIdsForTask(int taskId)
+{
+    return Database::instance().getDependencyIdsForTask(taskId);
+}
+
+QList<Task> TaskController::getDependenciesForTask(int taskId)
+{
+    return Database::instance().getDependenciesForTask(taskId);
+}
+
+bool TaskController::wouldCreateCircularDependency(int taskId, int dependsOnId)
+{
+    return Database::instance().wouldCreateCircularDependency(taskId, dependsOnId);
+}
+
+QList<Task> TaskController::getCircularDependencies(int taskId)
+{
+    return Database::instance().getCircularDependencies(taskId);
 }
 
 bool TaskController::addFileToTask(int taskId, const QString &filePath)

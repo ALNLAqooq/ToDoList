@@ -404,6 +404,8 @@ void TaskTree::loadFilteredTasks(const QString &group, int tagId, const TaskSear
     
     QList<Task> tasks;
     QString whereClause;
+    bool showDeleted = false;
+    bool isRecycleBin = (group == "回收站");
     
     if (group == "今天") {
         whereClause = "date(t.created_at) = date('now', 'localtime')";
@@ -428,11 +430,16 @@ void TaskTree::loadFilteredTasks(const QString &group, int tagId, const TaskSear
     } else if (group == "所有任务") {
         whereClause = "1=1";
     } else {
-        if (tagId <= 0) {
+        if (tagId <= 0 && !isRecycleBin) {
             loadAllTasks();
             return;
         }
         whereClause = "1=1";
+    }
+
+    if (isRecycleBin) {
+        whereClause = "1=1";
+        showDeleted = true;
     }
 
     QStringList joins;
@@ -536,6 +543,7 @@ void TaskTree::loadFilteredTasks(const QString &group, int tagId, const TaskSear
         }
         
         const QString orderClause = buildOrderClause();
+        const QString deletedPredicate = showDeleted ? "t.is_deleted = 1" : "t.is_deleted = 0";
         const bool useDistinct = !tagIds.isEmpty();
         const QString distinctClause = useDistinct ? "DISTINCT " : "";
         const QString joinClause = queryJoins.join(" ");
@@ -545,9 +553,9 @@ void TaskTree::loadFilteredTasks(const QString &group, int tagId, const TaskSear
                    CASE WHEN EXISTS(SELECT 1 FROM tasks child WHERE child.parent_id = t.id AND child.is_deleted = 0) THEN 1 ELSE 0 END as has_children
             FROM tasks t
             %2
-            WHERE t.is_deleted = 0 AND %3
-            %4
-        )").arg(distinctClause, joinClause, whereClauseCombined, orderClause);
+            WHERE %3 AND %4
+            %5
+        )").arg(distinctClause, joinClause, deletedPredicate, whereClauseCombined, orderClause);
         
         QSqlQuery query(Database::instance().database());
         query.prepare(queryStr);

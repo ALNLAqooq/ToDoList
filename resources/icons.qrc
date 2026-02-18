@@ -3,11 +3,26 @@
         <file alias="add.svg">icons/add.svg</file>
         <file alias="arrow_down.svg">icons/arrow_down.svg</file>
         <file alias="arrow_right.svg">icons/arrow_right.svg</file>
+        <file alias="bell.svg">icons/bell.svg</file>
         <file alias="check.svg">icons/check.svg</file>
         <file alias="delete.svg">icons/delete.svg</file>
         <file alias="edit.svg">icons/edit.svg</file>
+        <file alias="file.svg">icons/file.svg</file>
+        <file alias="file-archive.svg">icons/file-archive.svg</file>
+        <file alias="file-audio.svg">icons/file-audio.svg</file>
+        <file alias="file-code.svg">icons/file-code.svg</file>
+        <file alias="file-excel.svg">icons/file-excel.svg</file>
+        <file alias="file-image.svg">icons/file-image.svg</file>
+        <file alias="file-pdf.svg">icons/file-pdf.svg</file>
+        <file alias="file-powerpoint.svg">icons/file-powerpoint.svg</file>
+        <file alias="file-text.svg">icons/file-text.svg</file>
+        <file alias="file-video.svg">icons/file-video.svg</file>
+        <file alias="file-word.svg">icons/file-word.svg</file>
+        <file alias="moon.svg">icons/moon.svg</file>
         <file alias="priority_high.svg">icons/priority_high.svg</file>
         <file alias="priority_low.svg">icons/priority_low.svg</file>
         <file alias="priority_medium.svg">icons/priority_medium.svg</file>
+        <file alias="settings.svg">icons/settings.svg</file>
+        <file alias="sun.svg">icons/sun.svg</file>
     </qresource>
 </RCC>

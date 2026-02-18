@@ -104,19 +104,19 @@
 ## 11. Task Dependencies
 
 - [x] 11.1 Implement task_dependencies table operations
-- [ ] 11.2 Add dependency display on task card
+- [x] 11.2 Add dependency display on task card
 - [x] 11.3 Implement dependency selection in task dialog
-- [ ] 11.4 Add circular dependency detection
-- [ ] 11.5 Implement flat display for circular dependencies
+- [x] 11.4 Add circular dependency detection
+- [x] 11.5 Implement flat display for circular dependencies
 
 ## 12. File Association
 
 - [x] 12.1 Add file_path field to tasks table
 - [x] 12.2 Implement file association in task dialog
-- [ ] 12.3 Add file type icon display
+- [x] 12.3 Add file type icon display
 - [x] 12.4 Implement open file with default application (QDesktopServices)
 - [x] 12.5 Add file validation (exists check)
-- [ ] 12.6 Handle missing file scenarios with warning
+- [x] 12.6 Handle missing file scenarios with warning
 
 ## 13. Notification System
 
@@ -132,12 +132,12 @@
 ## 14. Recycle Bin
 
 - [x] 14.1 Implement soft delete (is_deleted flag)
-- [ ] 14.2 Add recycle bin view in sidebar
+- [x] 14.2 Add recycle bin view in sidebar
 - [x] 14.3 Implement restore from recycle bin
 - [x] 14.4 Implement permanent delete with confirmation
-- [ ] 14.5 Add parent task delete handling (cascade or promote children)
+- [x] 14.5 Add parent task delete handling (cascade or promote children)
 - [x] 14.6 Implement 14-day auto-cleanup
-- [ ] 14.7 Add 3-day and 1-day deletion warnings
+- [x] 14.7 Add 3-day and 1-day deletion warnings
 
 ## 15. Backup System
 
@@ -153,16 +153,16 @@
 
 ## 16. Settings System
 
-- [ ] 16.1 Create SettingsDialog class (settingsdialog.h/cpp)
-- [ ] 16.2 Add General settings category (theme, language, startup options)
-- [ ] 16.3 Add Appearance settings category (card style, font size, icon style, corner radius)
-- [ ] 16.4 Add Notification settings category (enable/disable, reminders, system notifications, sounds)
-- [ ] 16.5 Add Backup settings category (enable, frequency, time, retention, location)
-- [ ] 16.6 Add Data settings category (database location, export, import, clear cache)
-- [ ] 16.7 Add Delete settings category (parent action, auto-cleanup, cleanup days)
-- [ ] 16.8 Add Keyboard shortcuts category (view, customize, reset)
-- [ ] 16.9 Add About settings category (version, check updates, feedback, GitHub)
-- [ ] 16.10 Implement settings persistence (save/load from database)
+- [x] 16.1 Create SettingsDialog class (settingsdialog.h/cpp)
+- [x] 16.2 Add General settings category (theme, language, startup options)
+- [x] 16.3 Add Appearance settings category (card style, font size, icon style, corner radius)
+- [x] 16.4 Add Notification settings category (enable/disable, reminders, system notifications, sounds)
+- [x] 16.5 Add Backup settings category (enable, frequency, time, retention, location)
+- [x] 16.6 Add Data settings category (database location, export, import, clear cache)
+- [x] 16.7 Add Delete settings category (parent action, auto-cleanup, cleanup days)
+- [x] 16.8 Add Keyboard shortcuts category (view, customize, reset)
+- [x] 16.9 Add About settings category (version, check updates, feedback, GitHub)
+- [x] 16.10 Implement settings persistence (save/load from database)
 
 ## 17. Data Import/Export
 
