@@ -2,6 +2,7 @@
 #include "task_tree.h"
 #include "task_detail_widget.h"
 #include "task_dialog.h"
+#include "search_widget.h"
 #include "../controllers/task_controller.h"
 #include "../utils/logger.h"
 #include <QMessageBox>
@@ -15,6 +16,7 @@ ContentArea::ContentArea(QWidget *parent)
     , m_tagFilterWidget(nullptr)
     , m_tagFilterLabel(nullptr)
     , m_tagClearButton(nullptr)
+    , m_searchWidget(nullptr)
     , m_placeholderLabel(nullptr)
     , m_splitter(nullptr)
     , m_taskTree(nullptr)
@@ -24,6 +26,7 @@ ContentArea::ContentArea(QWidget *parent)
     , m_currentTaskId(0)
     , m_currentTagId(0)
     , m_currentTagName("")
+    , m_searchFilters()
 {
     setupUI();
     LOG_INFO("ContentArea", "Content area widget created");
@@ -70,6 +73,10 @@ void ContentArea::setupUI()
     m_headerLayout->addWidget(m_tagFilterWidget);
     m_headerLayout->addStretch();
 
+    m_controller = new TaskController(this);
+    m_searchWidget = new SearchWidget(m_controller, this);
+    connect(m_searchWidget, &SearchWidget::filtersChanged, this, &ContentArea::onSearchFiltersChanged);
+
     m_placeholderLabel = new QLabel("暂无任务。点击 + 按钮添加新任务。", this);
     m_placeholderLabel->setAlignment(Qt::AlignCenter);
     m_placeholderLabel->setWordWrap(true);
@@ -79,7 +86,6 @@ void ContentArea::setupUI()
     m_splitter = new QSplitter(Qt::Horizontal, this);
     m_splitter->setHandleWidth(1);
 
-    m_controller = new TaskController(this);
     m_taskTree = new TaskTree(m_controller, this);
     m_taskTree->setContextMenuPolicy(Qt::CustomContextMenu);
 
@@ -101,6 +107,7 @@ void ContentArea::setupUI()
     m_splitter->setSizes({600, 400});
 
     m_mainLayout->addLayout(m_headerLayout);
+    m_mainLayout->addWidget(m_searchWidget);
     m_mainLayout->addWidget(m_placeholderLabel, 1);
     m_mainLayout->addWidget(m_splitter, 1);
 
@@ -126,10 +133,17 @@ QString ContentArea::getCurrentGroup() const
     return m_currentGroup;
 }
 
+void ContentArea::setSearchText(const QString &text)
+{
+    if (m_searchWidget) {
+        m_searchWidget->setSearchText(text);
+    }
+}
+
 void ContentArea::loadTasks()
 {
     if (m_taskTree) {
-        m_taskTree->loadTasks(m_currentGroup, m_currentTagId);
+        m_taskTree->loadTasks(m_currentGroup, m_currentTagId, m_searchFilters);
         LOG_INFO("ContentArea", "Tasks loaded in task tree for group: " + m_currentGroup);
     }
 }
@@ -226,7 +240,11 @@ void ContentArea::onTagSelected(int tagId, const QString &tagName)
     m_currentTagId = tagId;
     m_currentTagName = tagName;
     updateTagFilterDisplay();
-    loadTasks();
+    if (m_searchWidget) {
+        m_searchWidget->setSelectedTags(QList<int>() << tagId);
+    } else {
+        loadTasks();
+    }
 }
 
 void ContentArea::onClearTagFilter()
@@ -234,12 +252,27 @@ void ContentArea::onClearTagFilter()
     m_currentTagId = 0;
     m_currentTagName.clear();
     updateTagFilterDisplay();
-    loadTasks();
+    if (m_searchWidget) {
+        m_searchWidget->setSelectedTags(QList<int>());
+    } else {
+        loadTasks();
+    }
 }
 
 void ContentArea::onTaskCountChanged(int count)
 {
     updateEmptyState(count);
+}
+
+void ContentArea::onSearchFiltersChanged(const TaskSearchFilters &filters)
+{
+    m_searchFilters = filters;
+    if (m_currentTagId > 0 && !filters.tagIds.contains(m_currentTagId)) {
+        m_currentTagId = 0;
+        m_currentTagName.clear();
+        updateTagFilterDisplay();
+    }
+    loadTasks();
 }
 
 void ContentArea::showTaskDetailPanel()

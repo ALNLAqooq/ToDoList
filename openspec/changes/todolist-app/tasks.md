@@ -92,12 +92,12 @@
 
 - [x] 10.1 Create SearchWidget (searchwidget.h/cpp)
 - [x] 10.2 Implement real-time search as user types
-- [ ] 10.3 Add advanced search panel with filters
-- [ ] 10.4 Implement priority filter dropdown
-- [ ] 10.5 Implement status filter dropdown
-- [ ] 10.6 Implement date filter dropdown (Today, This Week, This Month, Overdue)
+- [x] 10.3 Add advanced search panel with filters
+- [x] 10.4 Implement priority filter dropdown
+- [x] 10.5 Implement status filter dropdown
+- [x] 10.6 Implement date filter dropdown (Today, This Week, This Month, Overdue)
 - [x] 10.7 Implement tag filter (multi-select)
-- [ ] 10.8 Implement sort options (deadline, priority, created, manual)
+- [x] 10.8 Implement sort options (deadline, priority, created, manual)
 - [x] 10.9 Set up FTS5 full-text search in SQLite
 - [x] 10.10 Create FTS virtual table and triggers
 

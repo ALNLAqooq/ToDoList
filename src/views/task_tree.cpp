@@ -16,12 +16,28 @@
 #include <QStyle>
 #include <QFontMetrics>
 #include <functional>
+#include <QRegularExpression>
+#include <QSqlError>
 
 namespace {
 constexpr int RoleTaskId = Qt::UserRole;
 constexpr int RoleCompleted = Qt::UserRole + 1;
 constexpr int RoleHasChildren = Qt::UserRole + 2;
 constexpr int RoleSourceInfo = Qt::UserRole + 3;
+
+QString buildFtsQuery(const QString &text)
+{
+    QString cleaned = text;
+    cleaned.replace(QRegularExpression(R"(["':*])"), " ");
+    QStringList terms = cleaned.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts);
+    for (QString &term : terms) {
+        term = term.trimmed();
+        if (!term.endsWith('*')) {
+            term.append('*');
+        }
+    }
+    return terms.join(" AND ");
+}
 }
 
 TaskTreeItemDelegate::TaskTreeItemDelegate(QObject *parent)
@@ -166,6 +182,7 @@ TaskTree::TaskTree(TaskController *controller, QWidget *parent)
     , m_contextMenu(nullptr)
     , m_currentGroup("所有任务")
     , m_currentTagId(0)
+    , m_searchFilters()
 {
     setupUI();
     setupContextMenu();
@@ -379,7 +396,7 @@ void TaskTree::loadAllTasks()
     emit taskCountChanged(m_treeModel->rowCount());
 }
 
-void TaskTree::loadFilteredTasks(const QString &group, int tagId)
+void TaskTree::loadFilteredTasks(const QString &group, int tagId, const TaskSearchFilters &filters)
 {
     m_treeModel->clear();
     m_treeModel->setHorizontalHeaderLabels(QStringList() << "Tasks");
@@ -387,7 +404,6 @@ void TaskTree::loadFilteredTasks(const QString &group, int tagId)
     
     QList<Task> tasks;
     QString whereClause;
-    QStringList bindValues;
     
     if (group == "今天") {
         whereClause = "date(t.created_at) = date('now', 'localtime')";
@@ -419,29 +435,130 @@ void TaskTree::loadFilteredTasks(const QString &group, int tagId)
         whereClause = "1=1";
     }
 
-    QString joinClause;
-    QString tagClause;
-    if (tagId > 0) {
-        joinClause = "INNER JOIN task_tags tt ON tt.task_id = t.id";
-        tagClause = " AND tt.tag_id = ?";
-    }
-
-    QString queryStr = QString(R"(
-        SELECT t.id, t.title, t.description, t.priority, t.due_date, t.completed, t.progress, t.parent_id, t.created_at, t.updated_at,
-               CASE WHEN EXISTS(SELECT 1 FROM tasks child WHERE child.parent_id = t.id AND child.is_deleted = 0) THEN 1 ELSE 0 END as has_children
-        FROM tasks t
-        %1
-        WHERE t.is_deleted = 0 AND %2 %3
-        ORDER BY t.created_at DESC
-    )").arg(joinClause, whereClause, tagClause);
+    QStringList joins;
+    QStringList conditions;
+    QVariantList bindValues;
     
-    QSqlQuery query(Database::instance().database());
-    query.prepare(queryStr);
-    if (tagId > 0) {
-        query.addBindValue(tagId);
+    if (!whereClause.isEmpty()) {
+        conditions << whereClause;
     }
     
-    if (query.exec()) {
+    QList<int> tagIds = filters.tagIds;
+    if (tagId > 0) {
+        tagIds.clear();
+        tagIds.append(tagId);
+    }
+    if (!tagIds.isEmpty()) {
+        joins << "INNER JOIN task_tags tt ON tt.task_id = t.id";
+        QStringList placeholders;
+        for (int i = 0; i < tagIds.size(); ++i) {
+            placeholders << "?";
+        }
+        conditions << QString("tt.tag_id IN (%1)").arg(placeholders.join(","));
+        for (int id : tagIds) {
+            bindValues << id;
+        }
+    }
+    
+    if (filters.priority > 0) {
+        conditions << "t.priority = ?";
+        bindValues << filters.priority;
+    }
+    
+    switch (filters.status) {
+    case TaskSearchStatusFilter::Completed:
+        conditions << "t.completed = 1";
+        break;
+    case TaskSearchStatusFilter::Incomplete:
+        conditions << "t.completed = 0";
+        break;
+    case TaskSearchStatusFilter::InProgress:
+        conditions << "t.completed = 0 AND t.progress > 0";
+        break;
+    default:
+        break;
+    }
+    
+    switch (filters.date) {
+    case TaskSearchDateFilter::Today:
+        conditions << "date(t.due_date) = date('now', 'localtime')";
+        break;
+    case TaskSearchDateFilter::ThisWeek:
+        conditions << "strftime('%Y-%W', t.due_date) = strftime('%Y-%W', 'now', 'localtime')";
+        break;
+    case TaskSearchDateFilter::ThisMonth:
+        conditions << "strftime('%Y-%m', t.due_date) = strftime('%Y-%m', 'now', 'localtime')";
+        break;
+    case TaskSearchDateFilter::Overdue:
+        conditions << "t.due_date < datetime('now', 'localtime') AND t.completed = 0";
+        break;
+    default:
+        break;
+    }
+    
+    const QString rawText = filters.text.trimmed();
+    const QString ftsQuery = buildFtsQuery(rawText);
+    const bool hasText = !rawText.isEmpty();
+    bool useFts = hasText && !ftsQuery.isEmpty();
+    bool useLike = hasText && !useFts;
+    
+    auto buildOrderClause = [&filters]() -> QString {
+        switch (filters.sort) {
+        case TaskSearchSort::CreatedDesc:
+            return "ORDER BY t.created_at DESC";
+        case TaskSearchSort::DueDateAsc:
+            return "ORDER BY CASE WHEN t.due_date IS NULL OR t.due_date = '' THEN 1 ELSE 0 END, t.due_date ASC";
+        case TaskSearchSort::DueDateDesc:
+            return "ORDER BY CASE WHEN t.due_date IS NULL OR t.due_date = '' THEN 1 ELSE 0 END, t.due_date DESC";
+        case TaskSearchSort::PriorityDesc:
+            return "ORDER BY t.priority DESC, t.created_at DESC";
+        case TaskSearchSort::PriorityAsc:
+            return "ORDER BY t.priority ASC, t.created_at DESC";
+        case TaskSearchSort::Manual:
+        default:
+            return "ORDER BY t.created_at DESC";
+        }
+    };
+    
+    auto runQuery = [&](bool ftsMode, bool likeMode) -> bool {
+        QStringList queryJoins = joins;
+        QStringList queryConditions = conditions;
+        QVariantList queryBinds = bindValues;
+        
+        if (ftsMode) {
+            queryJoins << "INNER JOIN tasks_fts f ON f.rowid = t.id";
+            queryConditions << "f MATCH ?";
+            queryBinds << ftsQuery;
+        } else if (likeMode) {
+            queryConditions << "(lower(t.title) LIKE ? OR lower(t.description) LIKE ?)";
+            const QString pattern = "%" + rawText.toLower() + "%";
+            queryBinds << pattern << pattern;
+        }
+        
+        const QString orderClause = buildOrderClause();
+        const bool useDistinct = !tagIds.isEmpty();
+        const QString distinctClause = useDistinct ? "DISTINCT " : "";
+        const QString joinClause = queryJoins.join(" ");
+        const QString whereClauseCombined = queryConditions.isEmpty() ? QString("1=1") : queryConditions.join(" AND ");
+        const QString queryStr = QString(R"(
+            SELECT %1t.id, t.title, t.description, t.priority, t.due_date, t.completed, t.progress, t.parent_id, t.created_at, t.updated_at,
+                   CASE WHEN EXISTS(SELECT 1 FROM tasks child WHERE child.parent_id = t.id AND child.is_deleted = 0) THEN 1 ELSE 0 END as has_children
+            FROM tasks t
+            %2
+            WHERE t.is_deleted = 0 AND %3
+            %4
+        )").arg(distinctClause, joinClause, whereClauseCombined, orderClause);
+        
+        QSqlQuery query(Database::instance().database());
+        query.prepare(queryStr);
+        for (const QVariant &value : queryBinds) {
+            query.addBindValue(value);
+        }
+        if (!query.exec()) {
+            return false;
+        }
+        
+        tasks.clear();
         while (query.next()) {
             Task task;
             task.setId(query.value(0).toInt());
@@ -457,6 +574,11 @@ void TaskTree::loadFilteredTasks(const QString &group, int tagId)
             task.setHasChildren(query.value(10).toBool());
             tasks.append(task);
         }
+        return true;
+    };
+    
+    if (!runQuery(useFts, useLike) && useFts) {
+        runQuery(false, true);
     }
     
     QMap<int, QStandardItem*> itemMap;
@@ -464,7 +586,7 @@ void TaskTree::loadFilteredTasks(const QString &group, int tagId)
     for (const Task &task : tasks) {
         taskIds.insert(task.id());
     }
-
+    
     QMap<int, Task> parentCache;
     auto buildSourceInfo = [&](int parentId, QString *tooltipOut) -> QString {
         if (parentId <= 0) {
@@ -486,9 +608,9 @@ void TaskTree::loadFilteredTasks(const QString &group, int tagId)
         }
         if (tooltipOut) {
             if (timeStr.isEmpty()) {
-                *tooltipOut = QString("父任务: %1").arg(parentTask.title());
+                *tooltipOut = QString("????? %1").arg(parentTask.title());
             } else {
-                *tooltipOut = QString("父任务: %1\n创建时间: %2").arg(parentTask.title(), timeStr);
+                *tooltipOut = QString("????? %1\n??????: %2").arg(parentTask.title(), timeStr);
             }
         }
         if (timeStr.isEmpty()) {
@@ -496,7 +618,7 @@ void TaskTree::loadFilteredTasks(const QString &group, int tagId)
         }
         return QString("%1 / %2").arg(timeStr, parentTask.title());
     };
-
+    
     for (const Task &task : tasks) {
         QString sourceInfo;
         QString sourceTooltip;
@@ -521,31 +643,37 @@ void TaskTree::loadFilteredTasks(const QString &group, int tagId)
             parentItem->appendRow(childItem);
         }
     }
-
+    
     emit taskCountChanged(m_treeModel->rowCount());
 }
 
 void TaskTree::loadTasks()
 {
-    loadTasks("所有任务", 0);
+    loadTasks("所有任务", 0, TaskSearchFilters());
 }
 
 void TaskTree::loadTasks(const QString &group)
 {
-    loadTasks(group, 0);
+    loadTasks(group, 0, TaskSearchFilters());
 }
 
 void TaskTree::loadTasks(const QString &group, int tagId)
 {
+    loadTasks(group, tagId, m_searchFilters);
+}
+
+void TaskTree::loadTasks(const QString &group, int tagId, const TaskSearchFilters &filters)
+{
     m_currentGroup = group;
     m_currentTagId = tagId;
+    m_searchFilters = filters;
 
-    if (group == "所有任务" && tagId <= 0) {
+    if (group == "所有任务" && tagId <= 0 && !filters.hasActiveFilters()) {
         loadAllTasks();
         return;
     }
 
-    loadFilteredTasks(group, tagId);
+    loadFilteredTasks(group, tagId, filters);
 }
 
 void TaskTree::refreshTasks()
@@ -557,7 +685,7 @@ void TaskTree::refreshTasks()
         selectedId = currentIndex.data(RoleTaskId).toInt();
     }
 
-    loadTasks(m_currentGroup, m_currentTagId);
+    loadTasks(m_currentGroup, m_currentTagId, m_searchFilters);
     restoreExpandedTaskIds(expandedIds);
 
     if (selectedId > 0) {

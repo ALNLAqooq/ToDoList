@@ -243,6 +243,14 @@ bool Database::createIndexes()
 bool Database::createFTS5Table()
 {
     QSqlQuery query(m_database);
+    bool existed = false;
+    {
+        QSqlQuery checkQuery(m_database);
+        checkQuery.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='tasks_fts'");
+        if (checkQuery.exec() && checkQuery.next()) {
+            existed = true;
+        }
+    }
 
     QString ftsTable = R"(
         CREATE VIRTUAL TABLE IF NOT EXISTS tasks_fts USING fts5(
@@ -256,6 +264,12 @@ bool Database::createFTS5Table()
     if (!query.exec(ftsTable)) {
         qDebug() << "Failed to create FTS5 table:" << query.lastError().text();
         return false;
+    }
+
+    if (!existed) {
+        if (!query.exec("INSERT INTO tasks_fts(tasks_fts) VALUES('rebuild')")) {
+            qDebug() << "Failed to rebuild FTS5 table:" << query.lastError().text();
+        }
     }
 
     QString triggers[] = {

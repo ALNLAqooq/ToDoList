@@ -11,10 +11,12 @@
 #include <QPushButton>
 #include <QSizePolicy>
 #include "../models/task.h"
+#include "../models/task_search_filters.h"
 
 class TaskTree;
 class TaskController;
 class TaskDetailWidget;
+class SearchWidget;
 
 class ContentArea : public QWidget
 {
@@ -27,6 +29,7 @@ public:
     void setCurrentGroup(const QString &group);
     QString getCurrentGroup() const;
     void loadTasks();
+    void setSearchText(const QString &text);
 
 signals:
     void tagsChanged();
@@ -44,6 +47,7 @@ private slots:
     void onTaskDeleted(int taskId);
     void onClearTagFilter();
     void onTaskCountChanged(int count);
+    void onSearchFiltersChanged(const TaskSearchFilters &filters);
 
 private:
     void setupUI();
@@ -60,6 +64,7 @@ private:
     QWidget *m_tagFilterWidget;
     QLabel *m_tagFilterLabel;
     QPushButton *m_tagClearButton;
+    SearchWidget *m_searchWidget;
     QLabel *m_placeholderLabel;
     QSplitter *m_splitter;
     TaskTree *m_taskTree;
@@ -69,6 +74,7 @@ private:
     int m_currentTaskId;
     int m_currentTagId;
     QString m_currentTagName;
+    TaskSearchFilters m_searchFilters;
 };
 
 #endif 

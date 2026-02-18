@@ -50,12 +50,14 @@ set(HEADERS
     src/models/taskmodel.h
     src/models/notification.h
     src/models/folder.h
+    src/models/task_search_filters.h
 )
 
 set(UI_SOURCES
     src/views/mainwindow.cpp
     src/views/sidebar.cpp
     src/views/content_area.cpp
+    src/views/search_widget.cpp
     src/views/task_list_widget.cpp
     src/views/task_card_widget.cpp
     src/views/task_dialog.cpp
@@ -68,6 +70,7 @@ set(UI_HEADERS
     src/views/mainwindow.h
     src/views/sidebar.h
     src/views/content_area.h
+    src/views/search_widget.h
     src/views/task_list_widget.h
     src/views/task_card_widget.h
     src/views/task_dialog.h

@@ -252,6 +252,9 @@ void MainWindow::onCollapseRequested()
 void MainWindow::onSearchTextChanged(const QString &text)
 {
     LOG_INFO("MainWindow", QString("Search text changed: %1").arg(text));
+    if (m_contentArea) {
+        m_contentArea->setSearchText(text);
+    }
 }
 
 void MainWindow::onNewTaskClicked()

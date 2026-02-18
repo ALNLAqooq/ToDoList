@@ -10,6 +10,7 @@
 #include <QSet>
 #include <QStyledItemDelegate>
 #include "../models/task.h"
+#include "../models/task_search_filters.h"
 #include "../controllers/task_controller.h"
 
 class TaskTreeItemDelegate : public QStyledItemDelegate
@@ -41,6 +42,7 @@ public:
     void loadTasks();
     void loadTasks(const QString &group);
     void loadTasks(const QString &group, int tagId);
+    void loadTasks(const QString &group, int tagId, const TaskSearchFilters &filters);
     void refreshTasks();
     void expandAll();
     void collapseAll();
@@ -66,7 +68,7 @@ private:
     QStandardItem* createTaskItem(const Task &task, const QString &sourceInfo = QString(), const QString &sourceTooltip = QString());
     void loadChildTasks(int parentId, QStandardItem *parentItem);
     void loadAllTasks();
-    void loadFilteredTasks(const QString &group, int tagId);
+    void loadFilteredTasks(const QString &group, int tagId, const TaskSearchFilters &filters);
     Task getTaskFromIndex(const QModelIndex &index) const;
     QSet<int> collectExpandedTaskIds() const;
     void restoreExpandedTaskIds(const QSet<int> &ids);
@@ -86,6 +88,7 @@ private:
     QMap<int, Task> m_tasksCache;
     QString m_currentGroup;
     int m_currentTagId;
+    TaskSearchFilters m_searchFilters;
 };
 
 #endif // TASK_TREE_H
