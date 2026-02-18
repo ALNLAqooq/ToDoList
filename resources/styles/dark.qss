@@ -633,6 +633,7 @@ TaskCardWidget {
     background-color: #1E293B;
     border: 1px solid #334155;
     border-radius: 8px;
+    transition: background-color 0.2s, border-color 0.2s;
 }
 
 TaskCardWidget:hover {

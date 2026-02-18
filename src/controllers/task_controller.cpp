@@ -26,6 +26,11 @@ Task TaskController::getTaskById(int id)
     return Database::instance().getTaskById(id);
 }
 
+QList<Task> TaskController::getTaskHierarchy(int rootId)
+{
+    return Database::instance().getTaskHierarchy(rootId);
+}
+
 bool TaskController::addTask(Task &task)
 {
     if (Database::instance().insertTask(task)) {
@@ -46,8 +51,12 @@ bool TaskController::updateTask(const Task &task)
 
 bool TaskController::deleteTask(int id)
 {
+    Task task = getTaskById(id);
     if (Database::instance().deleteTask(id)) {
         emit taskDeleted(id);
+        if (task.parentId() > 0) {
+            updateParentProgress(task.parentId());
+        }
         return true;
     }
     return false;
@@ -59,6 +68,7 @@ bool TaskController::toggleTaskCompletion(int id)
     task.setCompleted(!task.isCompleted());
 
     if (updateTask(task)) {
+        updateProgress(id);
         emit taskCompletionChanged(id, task.isCompleted());
         return true;
     }
@@ -68,6 +78,11 @@ bool TaskController::toggleTaskCompletion(int id)
 QList<Tag> TaskController::getAllTags()
 {
     return Database::instance().getAllTags();
+}
+
+QList<Tag> TaskController::getTagsByTaskId(int taskId)
+{
+    return Database::instance().getTagsByTaskId(taskId);
 }
 
 bool TaskController::addTag(Tag &tag)
@@ -155,8 +170,25 @@ bool TaskController::removeFileFromTask(int fileId)
 double TaskController::updateProgress(int taskId)
 {
     double progress = Database::instance().calculateProgress(taskId);
+    Task updatedTask = getTaskById(taskId);
+    emit taskUpdated(updatedTask);
+
+    if (updatedTask.parentId() > 0) {
+        updateParentProgress(updatedTask.parentId());
+    }
+
+    return progress;
+}
+
+double TaskController::updateParentProgress(int taskId)
+{
+    double progress = Database::instance().calculateProgress(taskId);
     Task task = getTaskById(taskId);
-    task.setProgress(progress);
-    updateTask(task);
+    emit taskUpdated(task);
+
+    if (task.parentId() > 0) {
+        updateParentProgress(task.parentId());
+    }
+
     return progress;
 }

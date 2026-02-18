@@ -1,7 +1,7 @@
 #include "task_card_widget.h"
+#include "task_dialog.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
-#include <QProgressBar>
 #include <QMessageBox>
 #include <QDate>
 
@@ -16,6 +16,7 @@ TaskCardWidget::TaskCardWidget(const Task &task, TaskController *controller, QWi
     , m_completed(task.isCompleted())
     , m_progress(task.progress())
 {
+    m_tags = m_controller->getTagsByTaskId(m_taskId);
     setupUI();
 }
 
@@ -25,58 +26,18 @@ TaskCardWidget::~TaskCardWidget()
 
 void TaskCardWidget::setupUI()
 {
-    setStyleSheet(R"(
-        TaskCardWidget {
-            background-color: #FFFFFF;
-            border-radius: 8px;
-            border: 1px solid #E5E7EB;
-            padding: 16px;
-        }
-        TaskCardWidget:hover {
-            border: 1px solid #3B82F6;
-        }
-    )");
-
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     mainLayout->setSpacing(12);
+    mainLayout->setContentsMargins(16, 16, 16, 16);
 
     QHBoxLayout *headerLayout = new QHBoxLayout();
+    headerLayout->setSpacing(12);
 
     m_checkBox = new QCheckBox(this);
     m_checkBox->setChecked(m_completed);
-    m_checkBox->setStyleSheet(R"(
-        QCheckBox::indicator {
-            width: 20px;
-            height: 20px;
-            border-radius: 4px;
-            border: 2px solid #9CA3AF;
-            background-color: white;
-        }
-        QCheckBox::indicator:checked {
-            background-color: #3B82F6;
-            border-color: #3B82F6;
-        }
-    )");
 
     m_titleLabel = new QLabel(m_title, this);
     m_titleLabel->setWordWrap(true);
-    m_titleLabel->setStyleSheet(R"(
-        QLabel {
-            font-size: 16px;
-            font-weight: bold;
-            color: #1F2937;
-        }
-    )");
-    if (m_completed) {
-        m_titleLabel->setStyleSheet(R"(
-            QLabel {
-                font-size: 16px;
-                font-weight: bold;
-                color: #9CA3AF;
-                text-decoration: line-through;
-            }
-        )");
-    }
 
     m_priorityLabel = new QLabel(this);
     updatePriorityIndicator();
@@ -84,31 +45,39 @@ void TaskCardWidget::setupUI()
     m_dueDateLabel = new QLabel(this);
     updateDueDateDisplay();
 
-    m_editButton = new QPushButton("编辑", this);
+    m_editButton = new QPushButton(this);
+    m_editButton->setToolTip("编辑");
+    m_editButton->setFixedSize(32, 32);
     m_editButton->setStyleSheet(R"(
         QPushButton {
-            background-color: #F3F4F6;
+            background-color: transparent;
             border: none;
             border-radius: 4px;
-            padding: 4px 12px;
-            color: #4B5563;
+            padding: 6px;
         }
         QPushButton:hover {
-            background-color: #E5E7EB;
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+        QPushButton:pressed {
+            background-color: rgba(59, 130, 246, 0.2);
         }
     )");
 
-    m_deleteButton = new QPushButton("删除", this);
+    m_deleteButton = new QPushButton(this);
+    m_deleteButton->setToolTip("删除");
+    m_deleteButton->setFixedSize(32, 32);
     m_deleteButton->setStyleSheet(R"(
         QPushButton {
-            background-color: #FEF2F2;
+            background-color: transparent;
             border: none;
             border-radius: 4px;
-            padding: 4px 12px;
-            color: #DC2626;
+            padding: 6px;
         }
         QPushButton:hover {
-            background-color: #FEE2E2;
+            background-color: rgba(239, 68, 68, 0.1);
+        }
+        QPushButton:pressed {
+            background-color: rgba(239, 68, 68, 0.2);
         }
     )");
 
@@ -122,18 +91,23 @@ void TaskCardWidget::setupUI()
     if (!m_description.isEmpty()) {
         m_descriptionLabel = new QLabel(m_description, this);
         m_descriptionLabel->setWordWrap(true);
-        m_descriptionLabel->setStyleSheet(R"(
-            QLabel {
-                font-size: 14px;
-                color: #6B7280;
-            }
-        )");
     } else {
         m_descriptionLabel = nullptr;
     }
 
-    m_progressLabel = new QLabel(this);
+    m_progressBar = new QProgressBar(this);
+    m_progressBar->setRange(0, 100);
+    m_progressBar->setTextVisible(true);
+    m_progressBar->setMaximumHeight(8);
+    m_progressBar->setFixedHeight(8);
     updateProgressDisplay();
+
+    m_tagsWidget = new QWidget(this);
+    m_tagsLayout = new QHBoxLayout(m_tagsWidget);
+    m_tagsLayout->setSpacing(6);
+    m_tagsLayout->setContentsMargins(0, 0, 0, 0);
+    m_tagsLayout->addStretch();
+    updateTagsDisplay();
 
     mainLayout->addLayout(headerLayout);
 
@@ -141,11 +115,14 @@ void TaskCardWidget::setupUI()
         mainLayout->addWidget(m_descriptionLabel);
     }
 
-    mainLayout->addWidget(m_progressLabel);
+    mainLayout->addWidget(m_progressBar);
+    mainLayout->addWidget(m_tagsWidget);
 
     connect(m_checkBox, &QCheckBox::stateChanged, this, &TaskCardWidget::onCheckBoxChanged);
     connect(m_editButton, &QPushButton::clicked, this, &TaskCardWidget::onEditClicked);
     connect(m_deleteButton, &QPushButton::clicked, this, &TaskCardWidget::onDeleteClicked);
+
+    setCursor(Qt::PointingHandCursor);
 }
 
 void TaskCardWidget::updateTask(const Task &task)
@@ -156,6 +133,7 @@ void TaskCardWidget::updateTask(const Task &task)
     m_dueDate = task.dueDate();
     m_completed = task.isCompleted();
     m_progress = task.progress();
+    m_tags = m_controller->getTagsByTaskId(m_taskId);
 
     m_checkBox->setChecked(m_completed);
     m_titleLabel->setText(m_title);
@@ -167,24 +145,12 @@ void TaskCardWidget::updateTask(const Task &task)
     updatePriorityIndicator();
     updateDueDateDisplay();
     updateProgressDisplay();
+    updateTagsDisplay();
 
     if (m_completed) {
-        m_titleLabel->setStyleSheet(R"(
-            QLabel {
-                font-size: 16px;
-                font-weight: bold;
-                color: #9CA3AF;
-                text-decoration: line-through;
-            }
-        )");
+        m_titleLabel->setStyleSheet("color: #94A3B8; text-decoration: line-through;");
     } else {
-        m_titleLabel->setStyleSheet(R"(
-            QLabel {
-                font-size: 16px;
-                font-weight: bold;
-                color: #1F2937;
-            }
-        )");
+        m_titleLabel->setStyleSheet("color: #F8FAFC;");
     }
 }
 
@@ -194,22 +160,9 @@ void TaskCardWidget::setCompleted(bool completed)
     m_checkBox->setChecked(completed);
 
     if (completed) {
-        m_titleLabel->setStyleSheet(R"(
-            QLabel {
-                font-size: 16px;
-                font-weight: bold;
-                color: #9CA3AF;
-                text-decoration: line-through;
-            }
-        )");
+        m_titleLabel->setStyleSheet("color: #94A3B8; text-decoration: line-through;");
     } else {
-        m_titleLabel->setStyleSheet(R"(
-            QLabel {
-                font-size: 16px;
-                font-weight: bold;
-                color: #1F2937;
-            }
-        )");
+        m_titleLabel->setStyleSheet("color: #F8FAFC;");
     }
 }
 
@@ -271,7 +224,7 @@ void TaskCardWidget::updateDueDateDisplay()
             dateColor = "#F59E0B";
         } else {
             dateText = m_dueDate.toString("yyyy-MM-dd");
-            dateColor = "#6B7280";
+            dateColor = "#94A3B8";
         }
 
         m_dueDateLabel->setText(dateText);
@@ -289,18 +242,64 @@ void TaskCardWidget::updateDueDateDisplay()
 
 void TaskCardWidget::updateProgressDisplay()
 {
-    if (m_progress > 0) {
-        int percentage = static_cast<int>(m_progress * 100);
-        m_progressLabel->setText(QString("进度: %1%").arg(percentage));
-        m_progressLabel->setStyleSheet(R"(
-            QLabel {
-                color: #3B82F6;
-                font-size: 12px;
-            }
-        )");
+    int percentage = static_cast<int>(m_progress * 100);
+    m_progressBar->setValue(percentage);
+
+    QString progressColor;
+
+    if (percentage >= 100) {
+        progressColor = "#10B981";
+    } else if (percentage >= 50) {
+        progressColor = "#3B82F6";
+    } else if (percentage >= 25) {
+        progressColor = "#F59E0B";
     } else {
-        m_progressLabel->setText("");
+        progressColor = "#EF4444";
     }
+
+    m_progressBar->setStyleSheet(QString(R"(
+        QProgressBar {
+            background-color: #334155;
+            border: none;
+            border-radius: 4px;
+            text-align: center;
+            color: #F8FAFC;
+            height: 8px;
+        }
+        QProgressBar::chunk {
+            background-color: %1;
+            border-radius: 4px;
+        }
+    )").arg(progressColor));
+}
+
+void TaskCardWidget::updateTagsDisplay()
+{
+    for (int i = m_tagsLayout->count() - 1; i >= 0; i--) {
+        QLayoutItem *item = m_tagsLayout->takeAt(i);
+        if (item->widget()) {
+            item->widget()->deleteLater();
+        }
+        delete item;
+    }
+
+    m_tagsLayout->addStretch();
+
+    for (const Tag &tag : m_tags) {
+        QLabel *tagLabel = new QLabel(tag.name(), this);
+        tagLabel->setStyleSheet(QString(R"(
+            QLabel {
+                background-color: %1;
+                color: white;
+                padding: 2px 8px;
+                border-radius: 4px;
+                font-size: 11px;
+            }
+        )").arg(tag.color()));
+        m_tagsLayout->addWidget(tagLabel);
+    }
+
+    m_tagsWidget->setVisible(!m_tags.isEmpty());
 }
 
 void TaskCardWidget::onCheckBoxChanged(int state)
@@ -311,7 +310,7 @@ void TaskCardWidget::onCheckBoxChanged(int state)
 
 void TaskCardWidget::onEditClicked()
 {
-    QMessageBox::information(this, "提示", "编辑功能待实现");
+    emit editRequested(m_taskId);
 }
 
 void TaskCardWidget::onDeleteClicked()

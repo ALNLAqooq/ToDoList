@@ -201,16 +201,16 @@ void Sidebar::setExpanded(bool expanded)
         if (expanded) {
             setMinimumWidth(200);
             setMaximumWidth(500);
-            setFixedWidth(DEFAULT_WIDTH);
             m_stackWidget->setCurrentWidget(m_expandedWidget);
         } else {
             setMinimumWidth(40);
             setMaximumWidth(40);
-            setFixedWidth(40);
             m_stackWidget->setCurrentWidget(m_collapsedWidget);
         }
         
         LOG_INFO("Sidebar", QString("Sidebar %1").arg(expanded ? "expanded" : "collapsed"));
+        
+        emit sizeChanged();
     }
 }
 
@@ -219,8 +219,25 @@ bool Sidebar::isExpanded() const
     return m_expanded;
 }
 
+void Sidebar::refreshTags()
+{
+    loadTags();
+}
+
 void Sidebar::onItemClicked(QListWidgetItem *item)
 {
+    if (!item) {
+        return;
+    }
+
+    QListWidget *owner = item->listWidget();
+    if (owner == m_tagsList) {
+        int tagId = item->data(Qt::UserRole).toInt();
+        emit tagSelected(tagId, item->text());
+        LOG_INFO("Sidebar", QString("Tag selected: %1 (%2)").arg(item->text()).arg(tagId));
+        return;
+    }
+
     QString group = item->text();
     emit groupChanged(group);
     LOG_INFO("Sidebar", QString("Group changed to: %1").arg(group));

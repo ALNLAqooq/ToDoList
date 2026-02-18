@@ -16,6 +16,7 @@ public:
     QList<Task> getAllTasks();
     QList<Task> getSubTasks(int parentId);
     Task getTaskById(int id);
+    QList<Task> getTaskHierarchy(int rootId = 0);
 
     bool addTask(Task &task);
     bool updateTask(const Task &task);
@@ -23,6 +24,7 @@ public:
     bool toggleTaskCompletion(int id);
 
     QList<Tag> getAllTags();
+    QList<Tag> getTagsByTaskId(int taskId);
     bool addTag(Tag &tag);
     bool updateTag(const Tag &tag);
     bool deleteTag(int id);
@@ -36,6 +38,7 @@ public:
     bool removeFileFromTask(int fileId);
 
     double updateProgress(int taskId);
+    double updateParentProgress(int taskId);
 
 signals:
     void taskAdded(const Task &task);

@@ -11,6 +11,7 @@ class Task;
 class Tag;
 class Notification;
 class Folder;
+class TaskStep;
 
 class Database
 {
@@ -34,21 +35,33 @@ public:
     QList<Task> getAllTasks();
     QList<Task> getTasksByParentId(int parentId);
     Task getTaskById(int id);
+    QList<Task> getTaskHierarchy(int rootId = 0);
     bool insertTask(Task &task);
     bool updateTask(const Task &task);
     bool deleteTask(int id);
     double calculateProgress(int taskId);
+    double calculateParentProgress(int taskId);
+
+    QList<TaskStep> getTaskSteps(int taskId);
+    bool insertTaskStep(TaskStep &step);
+    bool updateTaskStep(const TaskStep &step);
+    bool deleteTaskStep(int stepId);
+    bool deleteTaskSteps(int taskId);
 
     QList<Tag> getAllTags();
+    QList<Tag> getTagsByTaskId(int taskId);
     bool insertTag(Tag &tag);
     bool updateTag(const Tag &tag);
     bool deleteTag(int id);
     bool assignTagToTask(int taskId, int tagId);
     bool removeTagFromTask(int taskId, int tagId);
+    bool removeAllTagsFromTask(int taskId);
     bool addDependency(int taskId, int dependsOnId);
     bool removeDependency(int taskId, int dependsOnId);
+    bool removeAllDependenciesFromTask(int taskId);
     bool addFileToTask(int taskId, const QString &filePath, const QString &fileName);
     bool removeFileFromTask(int fileId);
+    bool removeAllFilesFromTask(int taskId);
 
     QList<Notification> getAllNotifications();
     QList<Notification> getUnreadNotifications();

@@ -39,6 +39,9 @@ public:
     int parentId() const { return m_parentId; }
     void setParentId(int parentId) { m_parentId = parentId; }
 
+    bool hasChildren() const { return m_hasChildren; }
+    void setHasChildren(bool hasChildren) { m_hasChildren = hasChildren; }
+
     QDateTime createdAt() const { return m_createdAt; }
     void setCreatedAt(const QDateTime &createdAt) { m_createdAt = createdAt; }
 
@@ -68,6 +71,7 @@ private:
     QDateTime m_dueDate;
     bool m_completed;
     int m_parentId;
+    bool m_hasChildren;
     QDateTime m_createdAt;
     QDateTime m_updatedAt;
     QList<int> m_tagIds;

@@ -5,6 +5,7 @@ Task::Task()
     , m_priority(Medium)
     , m_completed(false)
     , m_parentId(0)
+    , m_hasChildren(false)
     , m_progress(0.0)
 {
 }
@@ -15,6 +16,7 @@ Task::Task(int id, const QString &title)
     , m_priority(Medium)
     , m_completed(false)
     , m_parentId(0)
+    , m_hasChildren(false)
     , m_progress(0.0)
 {
 }

@@ -1,5 +1,6 @@
 #include "database.h"
 #include "../models/task.h"
+#include "../models/task_step.h"
 #include "../models/tag.h"
 #include "../models/notification.h"
 #include "../models/folder.h"
@@ -325,7 +326,13 @@ QList<Task> Database::getAllTasks()
 {
     QList<Task> tasks;
     QSqlQuery query(m_database);
-    query.prepare("SELECT id, title, description, priority, due_date, completed, progress, parent_id, created_at, updated_at FROM tasks WHERE is_deleted = 0 ORDER BY created_at DESC");
+    query.prepare(R"(
+        SELECT t.id, t.title, t.description, t.priority, t.due_date, t.completed, t.progress, t.parent_id, t.created_at, t.updated_at,
+               CASE WHEN EXISTS(SELECT 1 FROM tasks child WHERE child.parent_id = t.id AND child.is_deleted = 0) THEN 1 ELSE 0 END as has_children
+        FROM tasks t
+        WHERE t.is_deleted = 0
+        ORDER BY t.created_at DESC
+    )");
 
     if (query.exec()) {
         while (query.next()) {
@@ -340,6 +347,7 @@ QList<Task> Database::getAllTasks()
             task.setParentId(query.value(7).toInt());
             task.setCreatedAt(QDateTime::fromString(query.value(8).toString(), Qt::ISODate));
             task.setUpdatedAt(QDateTime::fromString(query.value(9).toString(), Qt::ISODate));
+            task.setHasChildren(query.value(10).toBool());
             tasks.append(task);
         }
     }
@@ -351,7 +359,13 @@ QList<Task> Database::getTasksByParentId(int parentId)
 {
     QList<Task> tasks;
     QSqlQuery query(m_database);
-    query.prepare("SELECT id, title, description, priority, due_date, completed, progress, parent_id, created_at, updated_at FROM tasks WHERE is_deleted = 0 AND parent_id = ? ORDER BY created_at ASC");
+    query.prepare(R"(
+        SELECT t.id, t.title, t.description, t.priority, t.due_date, t.completed, t.progress, t.parent_id, t.created_at, t.updated_at,
+               CASE WHEN EXISTS(SELECT 1 FROM tasks child WHERE child.parent_id = t.id AND child.is_deleted = 0) THEN 1 ELSE 0 END as has_children
+        FROM tasks t
+        WHERE t.is_deleted = 0 AND t.parent_id = ?
+        ORDER BY t.created_at ASC
+    )");
     query.addBindValue(parentId);
 
     if (query.exec()) {
@@ -367,6 +381,7 @@ QList<Task> Database::getTasksByParentId(int parentId)
             task.setParentId(query.value(7).toInt());
             task.setCreatedAt(QDateTime::fromString(query.value(8).toString(), Qt::ISODate));
             task.setUpdatedAt(QDateTime::fromString(query.value(9).toString(), Qt::ISODate));
+            task.setHasChildren(query.value(10).toBool());
             tasks.append(task);
         }
     }
@@ -378,7 +393,12 @@ Task Database::getTaskById(int id)
 {
     Task task;
     QSqlQuery query(m_database);
-    query.prepare("SELECT id, title, description, priority, due_date, completed, progress, parent_id, created_at, updated_at FROM tasks WHERE id = ? AND is_deleted = 0");
+    query.prepare(R"(
+        SELECT t.id, t.title, t.description, t.priority, t.due_date, t.completed, t.progress, t.parent_id, t.created_at, t.updated_at,
+               CASE WHEN EXISTS(SELECT 1 FROM tasks child WHERE child.parent_id = t.id AND child.is_deleted = 0) THEN 1 ELSE 0 END as has_children
+        FROM tasks t
+        WHERE t.id = ? AND t.is_deleted = 0
+    )");
     query.addBindValue(id);
 
     if (query.exec() && query.next()) {
@@ -392,9 +412,57 @@ Task Database::getTaskById(int id)
         task.setParentId(query.value(7).toInt());
         task.setCreatedAt(QDateTime::fromString(query.value(8).toString(), Qt::ISODate));
         task.setUpdatedAt(QDateTime::fromString(query.value(9).toString(), Qt::ISODate));
+        task.setHasChildren(query.value(10).toBool());
     }
 
     return task;
+}
+
+QList<Task> Database::getTaskHierarchy(int rootId)
+{
+    QList<Task> tasks;
+    QSqlQuery query(m_database);
+    
+    QString recursiveQuery = QString::fromUtf8(
+        "WITH RECURSIVE task_tree AS ("
+        "SELECT id, title, description, priority, due_date, completed, progress, parent_id, created_at, updated_at, 0 as level "
+        "FROM tasks "
+        "WHERE is_deleted = 0 AND (parent_id = ? OR (? = 0 AND parent_id = 0)) "
+        "UNION ALL "
+        "SELECT t.id, t.title, t.description, t.priority, t.due_date, t.completed, t.progress, t.parent_id, t.created_at, t.updated_at, tt.level + 1 "
+        "FROM tasks t "
+        "INNER JOIN task_tree tt ON t.parent_id = tt.id "
+        "WHERE t.is_deleted = 0 "
+        ") "
+        "SELECT id, title, description, priority, due_date, completed, progress, parent_id, created_at, updated_at, level, "
+        "CASE WHEN EXISTS(SELECT 1 FROM tasks child WHERE child.parent_id = id AND child.is_deleted = 0) THEN 1 ELSE 0 END as has_children "
+        "FROM task_tree "
+        "ORDER BY level, created_at"
+    );
+    
+    query.prepare(recursiveQuery);
+    query.addBindValue(rootId);
+    query.addBindValue(rootId);
+    
+    if (query.exec()) {
+        while (query.next()) {
+            Task task;
+            task.setId(query.value(0).toInt());
+            task.setTitle(query.value(1).toString());
+            task.setDescription(query.value(2).toString());
+            task.setPriority(query.value(3).toInt());
+            task.setDueDate(QDateTime::fromString(query.value(4).toString(), Qt::ISODate));
+            task.setCompleted(query.value(5).toBool());
+            task.setProgress(query.value(6).toDouble());
+            task.setParentId(query.value(7).toInt());
+            task.setCreatedAt(QDateTime::fromString(query.value(8).toString(), Qt::ISODate));
+            task.setUpdatedAt(QDateTime::fromString(query.value(9).toString(), Qt::ISODate));
+            task.setHasChildren(query.value(11).toBool());
+            tasks.append(task);
+        }
+    }
+    
+    return tasks;
 }
 
 bool Database::insertTask(Task &task)
@@ -456,25 +524,127 @@ bool Database::deleteTask(int id)
 double Database::calculateProgress(int taskId)
 {
     QSqlQuery query(m_database);
-    query.prepare("SELECT COUNT(*) FROM task_steps WHERE task_id = ?");
+    query.prepare("SELECT id FROM tasks WHERE is_deleted = 0 AND parent_id = ?");
     query.addBindValue(taskId);
 
-    if (query.exec() && query.next()) {
-        int totalSteps = query.value(0).toInt();
-        if (totalSteps == 0) {
-            return 0.0;
-        }
-
-        query.prepare("SELECT COUNT(*) FROM task_steps WHERE task_id = ? AND completed = 1");
-        query.addBindValue(taskId);
-
-        if (query.exec() && query.next()) {
-            int completedSteps = query.value(0).toInt();
-            return static_cast<double>(completedSteps) / totalSteps;
+    QList<int> childIds;
+    if (query.exec()) {
+        while (query.next()) {
+            childIds.append(query.value(0).toInt());
         }
     }
 
-    return 0.0;
+    double progress = 0.0;
+    if (childIds.isEmpty()) {
+        QSqlQuery leafQuery(m_database);
+        leafQuery.prepare("SELECT completed FROM tasks WHERE id = ? AND is_deleted = 0");
+        leafQuery.addBindValue(taskId);
+        if (leafQuery.exec() && leafQuery.next()) {
+            bool completed = leafQuery.value(0).toBool();
+            progress = completed ? 1.0 : 0.0;
+        }
+    } else {
+        double total = 0.0;
+        for (int childId : childIds) {
+            total += calculateProgress(childId);
+        }
+        progress = total / static_cast<double>(childIds.size());
+    }
+
+    QSqlQuery updateQuery(m_database);
+    updateQuery.prepare("UPDATE tasks SET progress = ?, updated_at = ? WHERE id = ?");
+    updateQuery.addBindValue(progress);
+    updateQuery.addBindValue(QDateTime::currentDateTime().toString(Qt::ISODate));
+    updateQuery.addBindValue(taskId);
+    updateQuery.exec();
+
+    return progress;
+}
+
+double Database::calculateParentProgress(int taskId)
+{
+    double progress = calculateProgress(taskId);
+
+    QSqlQuery parentQuery(m_database);
+    parentQuery.prepare("SELECT parent_id FROM tasks WHERE id = ? AND is_deleted = 0");
+    parentQuery.addBindValue(taskId);
+    if (parentQuery.exec() && parentQuery.next()) {
+        int parentId = parentQuery.value(0).toInt();
+        if (parentId > 0) {
+            calculateParentProgress(parentId);
+        }
+    }
+
+    return progress;
+}
+
+QList<TaskStep> Database::getTaskSteps(int taskId)
+{
+    QList<TaskStep> steps;
+    QSqlQuery query(m_database);
+    query.prepare("SELECT id, task_id, title, completed, position FROM task_steps WHERE task_id = ? ORDER BY position ASC");
+    query.addBindValue(taskId);
+
+    if (query.exec()) {
+        while (query.next()) {
+            TaskStep step;
+            step.setId(query.value(0).toInt());
+            step.setTaskId(query.value(1).toInt());
+            step.setTitle(query.value(2).toString());
+            step.setCompleted(query.value(3).toBool());
+            step.setPosition(query.value(4).toInt());
+            steps.append(step);
+        }
+    }
+
+    return steps;
+}
+
+bool Database::insertTaskStep(TaskStep &step)
+{
+    QSqlQuery query(m_database);
+    query.prepare("INSERT INTO task_steps (task_id, title, completed, position) VALUES (?, ?, ?, ?)");
+    query.addBindValue(step.taskId());
+    query.addBindValue(step.title());
+    query.addBindValue(step.isCompleted() ? 1 : 0);
+    query.addBindValue(step.position());
+
+    if (query.exec()) {
+        step.setId(query.lastInsertId().toInt());
+        return true;
+    }
+
+    return false;
+}
+
+bool Database::updateTaskStep(const TaskStep &step)
+{
+    QSqlQuery query(m_database);
+    query.prepare("UPDATE task_steps SET title = ?, completed = ?, position = ? WHERE id = ?");
+    query.addBindValue(step.title());
+    query.addBindValue(step.isCompleted() ? 1 : 0);
+    query.addBindValue(step.position());
+    query.addBindValue(step.id());
+
+    return query.exec();
+}
+
+bool Database::deleteTaskStep(int stepId)
+{
+    QSqlQuery query(m_database);
+    query.prepare("DELETE FROM task_steps WHERE id = ?");
+    query.addBindValue(stepId);
+
+    return query.exec();
+}
+
+bool Database::deleteTaskSteps(int taskId)
+{
+    QSqlQuery query(m_database);
+    query.prepare("DELETE FROM task_steps WHERE task_id = ?");
+    query.addBindValue(taskId);
+
+    return query.exec();
 }
 
 QList<Tag> Database::getAllTags()
@@ -482,6 +652,32 @@ QList<Tag> Database::getAllTags()
     QList<Tag> tags;
     QSqlQuery query(m_database);
     query.prepare("SELECT id, name, color FROM tags ORDER BY created_at ASC");
+
+    if (query.exec()) {
+        while (query.next()) {
+            Tag tag;
+            tag.setId(query.value(0).toInt());
+            tag.setName(query.value(1).toString());
+            tag.setColor(query.value(2).toString());
+            tags.append(tag);
+        }
+    }
+
+    return tags;
+}
+
+QList<Tag> Database::getTagsByTaskId(int taskId)
+{
+    QList<Tag> tags;
+    QSqlQuery query(m_database);
+    query.prepare(R"(
+        SELECT t.id, t.name, t.color
+        FROM tags t
+        INNER JOIN task_tags tt ON t.id = tt.tag_id
+        WHERE tt.task_id = ?
+        ORDER BY t.created_at ASC
+    )");
+    query.addBindValue(taskId);
 
     if (query.exec()) {
         while (query.next()) {
@@ -552,6 +748,15 @@ bool Database::removeTagFromTask(int taskId, int tagId)
     return query.exec();
 }
 
+bool Database::removeAllTagsFromTask(int taskId)
+{
+    QSqlQuery query(m_database);
+    query.prepare("DELETE FROM task_tags WHERE task_id = ?");
+    query.addBindValue(taskId);
+
+    return query.exec();
+}
+
 bool Database::addDependency(int taskId, int dependsOnId)
 {
     QSqlQuery query(m_database);
@@ -573,6 +778,15 @@ bool Database::removeDependency(int taskId, int dependsOnId)
     return query.exec();
 }
 
+bool Database::removeAllDependenciesFromTask(int taskId)
+{
+    QSqlQuery query(m_database);
+    query.prepare("DELETE FROM task_dependencies WHERE task_id = ?");
+    query.addBindValue(taskId);
+
+    return query.exec();
+}
+
 bool Database::addFileToTask(int taskId, const QString &filePath, const QString &fileName)
 {
     QSqlQuery query(m_database);
@@ -590,6 +804,15 @@ bool Database::removeFileFromTask(int fileId)
     QSqlQuery query(m_database);
     query.prepare("DELETE FROM task_files WHERE id = ?");
     query.addBindValue(fileId);
+
+    return query.exec();
+}
+
+bool Database::removeAllFilesFromTask(int taskId)
+{
+    QSqlQuery query(m_database);
+    query.prepare("DELETE FROM task_files WHERE task_id = ?");
+    query.addBindValue(taskId);
 
     return query.exec();
 }

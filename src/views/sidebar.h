@@ -23,10 +23,13 @@ public:
     
     int sidebarWidth() const;
     void setSidebarWidth(int width);
+    void refreshTags();
 
 signals:
     void groupChanged(const QString &group);
+    void tagSelected(int tagId, const QString &tagName);
     void collapseRequested();
+    void sizeChanged();
 
 private slots:
     void onItemClicked(QListWidgetItem *item);

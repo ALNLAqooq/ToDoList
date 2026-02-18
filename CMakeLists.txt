@@ -15,6 +15,8 @@ set(SOURCES
     src/main.cpp
     src/app.cpp
     src/controllers/database.cpp
+    src/controllers/backupmanager.cpp
+    src/controllers/notificationmanager.cpp
     src/utils/logger.cpp
     src/utils/date_utils.cpp
     src/utils/file_utils.cpp
@@ -23,6 +25,7 @@ set(SOURCES
     src/utils/theme_manager.cpp
     src/controllers/task_controller.cpp
     src/models/task.cpp
+    src/models/task_step.cpp
     src/models/tag.cpp
     src/models/taskmodel.cpp
     src/models/notification.cpp
@@ -32,6 +35,8 @@ set(SOURCES
 set(HEADERS
     src/app.h
     src/controllers/database.h
+    src/controllers/backupmanager.h
+    src/controllers/notificationmanager.h
     src/utils/logger.h
     src/utils/date_utils.h
     src/utils/file_utils.h
@@ -40,6 +45,7 @@ set(HEADERS
     src/utils/theme_manager.h
     src/controllers/task_controller.h
     src/models/task.h
+    src/models/task_step.h
     src/models/tag.h
     src/models/taskmodel.h
     src/models/notification.h
@@ -52,6 +58,10 @@ set(UI_SOURCES
     src/views/content_area.cpp
     src/views/task_list_widget.cpp
     src/views/task_card_widget.cpp
+    src/views/task_dialog.cpp
+    src/views/task_tree.cpp
+    src/views/task_detail_widget.cpp
+    src/views/notificationpanel.cpp
 )
 
 set(UI_HEADERS
@@ -60,6 +70,10 @@ set(UI_HEADERS
     src/views/content_area.h
     src/views/task_list_widget.h
     src/views/task_card_widget.h
+    src/views/task_dialog.h
+    src/views/task_tree.h
+    src/views/task_detail_widget.h
+    src/views/notificationpanel.h
 )
 
 add_executable(ToDoList WIN32 ${SOURCES} ${UI_SOURCES})

@@ -37,12 +37,12 @@
 
 ## 5. Task Tree View
 
-- [ ] 5.1 Create TaskTree widget using QTreeView + QStandardItemModel
-- [ ] 5.2 Implement tree display with indentation for hierarchy
-- [ ] 5.3 Add expand/collapse functionality for parent tasks
-- [ ] 5.4 Implement lazy loading of child tasks
-- [ ] 5.5 Add drag-and-drop reordering support
-- [ ] 5.6 Implement recursive query for task hierarchy (WITH RECURSIVE)
+- [x] 5.1 Create TaskTree widget using QTreeView + QStandardItemModel
+- [x] 5.2 Implement tree display with indentation for hierarchy
+- [x] 5.3 Add expand/collapse functionality for parent tasks
+- [x] 5.4 Implement lazy loading of child tasks
+- [x] 5.5 Add drag-and-drop reordering support
+- [x] 5.6 Implement recursive query for task hierarchy (WITH RECURSIVE)
 
 ## 6. Task Card Component
 
@@ -51,32 +51,32 @@
 - [x] 6.3 Add priority indicator with colors (red/amber/green)
 - [x] 6.4 Add deadline display with date formatting
 - [x] 6.5 Add progress bar (0-100%)
-- [ ] 6.6 Add tags display
+- [x] 6.6 Add tags display
 - [x] 6.7 Add completion checkbox
 - [x] 6.8 Add edit and delete buttons
 - [x] 6.9 Implement hover effects with theme colors
 
 ## 7. Task Dialogs
 
-- [ ] 7.1 Create TaskDialog for creating/editing tasks (taskdialog.h/cpp)
-- [ ] 7.2 Add title input field
-- [ ] 7.3 Add description text area
-- [ ] 7.4 Add priority selector (High/Medium/Low)
-- [ ] 7.5 Add deadline date and time pickers
-- [ ] 7.6 Add tag input with multi-select
-- [ ] 7.7 Add progress slider (0-100%)
-- [ ] 7.8 Add file association (browse, remove, open)
-- [ ] 7.9 Add subtask steps editor
-- [ ] 7.10 Add dependency selection
+- [x] 7.1 Create TaskDialog for creating/editing tasks (taskdialog.h/cpp)
+- [x] 7.2 Add title input field
+- [x] 7.3 Add description text area
+- [x] 7.4 Add priority selector (High/Medium/Low)
+- [x] 7.5 Add deadline date and time pickers
+- [x] 7.6 Add tag input with multi-select
+- [x] 7.7 Add progress slider (0-100%)
+- [x] 7.8 Add file association (browse, remove, open)
+- [x] 7.9 Add subtask steps editor
+- [x] 7.10 Add dependency selection
 
 ## 8. Task CRUD Operations
 
-- [ ] 8.1 Implement create task operation
-- [ ] 8.2 Implement edit task operation
-- [ ] 8.3 Implement delete task operation (with confirmation)
-- [ ] 8.4 Implement mark complete/incomplete operation
-- [ ] 8.5 Add parent-child task relationship handling
-- [ ] 8.6 Implement auto-calculate parent progress from children
+- [x] 8.1 Implement create task operation
+- [x] 8.2 Implement edit task operation
+- [x] 8.3 Implement delete task operation (with confirmation)
+- [x] 8.4 Implement mark complete/incomplete operation
+- [x] 8.5 Add parent-child task relationship handling
+- [x] 8.6 Implement auto-calculate parent progress from children
 
 ## 9. Theme System
 
@@ -98,12 +98,12 @@
 - [ ] 10.6 Implement date filter dropdown (Today, This Week, This Month, Overdue)
 - [ ] 10.7 Implement tag filter (multi-select)
 - [ ] 10.8 Implement sort options (deadline, priority, created, manual)
-- [ ] 10.9 Set up FTS5 full-text search in SQLite
-- [ ] 10.10 Create FTS virtual table and triggers
+- [x] 10.9 Set up FTS5 full-text search in SQLite
+- [x] 10.10 Create FTS virtual table and triggers
 
 ## 11. Task Dependencies
 
-- [ ] 11.1 Implement task_dependencies table operations
+- [x] 11.1 Implement task_dependencies table operations
 - [ ] 11.2 Add dependency display on task card
 - [ ] 11.3 Implement dependency selection in task dialog
 - [ ] 11.4 Add circular dependency detection
@@ -111,8 +111,8 @@
 
 ## 12. File Association
 
-- [ ] 12.1 Add file_path field to tasks table
-- [ ] 12.2 Implement file association in task dialog
+- [x] 12.1 Add file_path field to tasks table
+- [x] 12.2 Implement file association in task dialog
 - [ ] 12.3 Add file type icon display
 - [ ] 12.4 Implement open file with default application (QDesktopServices)
 - [ ] 12.5 Add file validation (exists check)
@@ -120,14 +120,14 @@
 
 ## 13. Notification System
 
-- [ ] 13.1 Create NotificationManager class (notificationmanager.h/cpp)
-- [ ] 13.2 Create NotificationPanel widget (notificationpanel.h/cpp)
-- [ ] 13.3 Implement bell icon with red dot indicator
-- [ ] 13.4 Add notification display in panel
-- [ ] 13.5 Implement mark as read functionality
-- [ ] 13.6 Add notification types (delete_warning, deadline, backup, system)
-- [ ] 13.7 Implement delete notification action
-- [ ] 13.8 Add notification history view
+- [x] 13.1 Create NotificationManager class (notificationmanager.h/cpp)
+- [x] 13.2 Create NotificationPanel widget (notificationpanel.h/cpp)
+- [x] 13.3 Implement bell icon with red dot indicator
+- [x] 13.4 Add notification display in panel
+- [x] 13.5 Implement mark as read functionality
+- [x] 13.6 Add notification types (delete_warning, deadline, backup, system)
+- [x] 13.7 Implement delete notification action
+- [x] 13.8 Add notification history view
 
 ## 14. Recycle Bin
 
@@ -141,15 +141,15 @@
 
 ## 15. Backup System
 
-- [ ] 15.1 Create BackupManager class (backupmanager.h/cpp)
-- [ ] 15.2 Implement daily automatic backup
-- [ ] 15.3 Add backup frequency configuration (hourly/daily/weekly)
-- [ ] 15.4 Implement backup time setting
-- [ ] 15.5 Add backup retention (keep N backups)
-- [ ] 15.6 Add backup location configuration
-- [ ] 15.7 Add manual backup trigger
-- [ ] 15.8 Implement backup progress indication
-- [ ] 15.9 Add backup completion notification
+- [x] 15.1 Create BackupManager class (backupmanager.h/cpp)
+- [x] 15.2 Implement daily automatic backup
+- [x] 15.3 Add backup frequency configuration (hourly/daily/weekly)
+- [x] 15.4 Implement backup time setting
+- [x] 15.5 Add backup retention (keep N backups)
+- [x] 15.6 Add backup location configuration
+- [x] 15.7 Add manual backup trigger
+- [x] 15.8 Implement backup progress indication
+- [x] 15.9 Add backup completion notification
 
 ## 16. Settings System
 

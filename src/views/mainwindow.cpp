@@ -1,11 +1,16 @@
 #include "mainwindow.h"
 #include "sidebar.h"
 #include "content_area.h"
+#include "task_dialog.h"
+#include "notificationpanel.h"
 #include "../utils/logger.h"
+#include "../controllers/task_controller.h"
+#include "../controllers/notificationmanager.h"
 #include <QSettings>
 #include <QApplication>
 #include <QScreen>
 #include <QIcon>
+#include <QTimer>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -19,6 +24,9 @@ MainWindow::MainWindow(QWidget *parent)
     , m_searchBox(nullptr)
     , m_newTaskButton(nullptr)
     , m_collapseButton(nullptr)
+    , m_notificationButton(nullptr)
+    , m_notificationBadge(nullptr)
+    , m_notificationPanel(nullptr)
     , m_quickTaskInput(nullptr)
     , m_quickAddButton(nullptr)
 {
@@ -27,6 +35,7 @@ MainWindow::MainWindow(QWidget *parent)
     setupToolbar();
     setupLayout();
     setupBottomBar();
+    setupNotificationButton();
 }
 
 MainWindow::~MainWindow()
@@ -54,8 +63,22 @@ void MainWindow::setupUI()
     m_sidebar = new Sidebar(this);
     connect(m_sidebar, &Sidebar::groupChanged, this, &MainWindow::onGroupChanged);
     connect(m_sidebar, &Sidebar::collapseRequested, this, &MainWindow::onCollapseRequested);
+    connect(m_sidebar, &Sidebar::sizeChanged, this, [this]() {
+        QTimer::singleShot(0, this, [this]() {
+            QList<int> sizes = m_splitter->sizes();
+            if (m_sidebar->isExpanded()) {
+                sizes[0] = m_sidebar->sidebarWidth();
+            } else {
+                sizes[0] = 40;
+            }
+            m_splitter->setSizes(sizes);
+        });
+    });
 
     m_contentArea = new ContentArea(this);
+    connect(m_sidebar, &Sidebar::tagSelected, m_contentArea, &ContentArea::onTagSelected);
+    connect(m_contentArea, &ContentArea::tagsChanged, m_sidebar, &Sidebar::refreshTags);
+    m_contentArea->loadTasks();
 
     LOG_INFO("MainWindow", "Main window UI setup complete");
 }
@@ -105,6 +128,18 @@ void MainWindow::setupBottomBar()
         "QPushButton:hover { background: #2563EB; }"
         "QPushButton:pressed { background: #1D4ED8; }"
     );
+    connect(m_quickAddButton, &QPushButton::clicked, this, [this]() {
+        QString title = m_quickTaskInput->text().trimmed();
+        if (!title.isEmpty()) {
+            TaskController controller;
+            Task newTask;
+            newTask.setTitle(title);
+            controller.addTask(newTask);
+            m_quickTaskInput->clear();
+            refreshTaskList();
+            LOG_INFO("MainWindow", QString("Quick task added: %1").arg(title));
+        }
+    });
     m_bottomBarLayout->addWidget(m_quickAddButton);
 
     m_mainLayout->addWidget(m_bottomBar);
@@ -164,6 +199,20 @@ void MainWindow::setupToolbar()
     );
     connect(m_collapseButton, &QPushButton::clicked, this, &MainWindow::onCollapseRequested);
     m_toolbar->addWidget(m_collapseButton);
+
+    m_notificationButton = new QToolButton(this);
+    m_notificationButton->setFixedSize(40, 40);
+    m_notificationButton->setText("🔔");
+    m_notificationButton->setStyleSheet(
+        "QToolButton { background: transparent; border: 1px solid transparent; "
+        "border-radius: 8px; color: #64748B; font-size: 18px; }"
+        "QToolButton:hover { background: #F1F5F9; border-color: #E2E8F0; "
+        "color: #0F172A; }"
+        "QToolButton:pressed { background: #E2E8F0; }"
+    );
+    m_notificationButton->setPopupMode(QToolButton::InstantPopup);
+    connect(m_notificationButton, &QToolButton::clicked, this, &MainWindow::onNotificationClicked);
+    m_toolbar->addWidget(m_notificationButton);
 
     LOG_INFO("MainWindow", "Main window toolbar setup complete");
 }
@@ -232,4 +281,81 @@ void MainWindow::onSearchTextChanged(const QString &text)
 void MainWindow::onNewTaskClicked()
 {
     LOG_INFO("MainWindow", "New task button clicked");
+    
+    TaskController *controller = new TaskController(this);
+    TaskDialog *dialog = new TaskDialog(controller, -1, this);
+    
+    if (dialog->exec() == QDialog::Accepted) {
+        LOG_INFO("MainWindow", "New task created via dialog");
+        refreshTaskList();
+    }
+    if (m_sidebar) {
+        m_sidebar->refreshTags();
+    }
+    
+    dialog->deleteLater();
+}
+
+void MainWindow::refreshTaskList()
+{
+    if (m_contentArea) {
+        m_contentArea->loadTasks();
+        LOG_INFO("MainWindow", "Task list refreshed");
+    }
+}
+
+void MainWindow::setupNotificationButton()
+{
+    NotificationManager &manager = NotificationManager::instance();
+    connect(&manager, &NotificationManager::unreadCountChanged, this, &MainWindow::onNotificationCountChanged);
+
+    m_notificationBadge = new QLabel(m_notificationButton);
+    m_notificationBadge->setFixedSize(18, 18);
+    m_notificationBadge->move(26, 0);
+    m_notificationBadge->setAlignment(Qt::AlignCenter);
+    m_notificationBadge->setStyleSheet(
+        "QLabel { background: #EF4444; color: white; border-radius: 9px; "
+        "font-size: 10px; font-weight: bold; }"
+    );
+    m_notificationBadge->hide();
+
+    onNotificationCountChanged(manager.unreadCount());
+
+    LOG_INFO("MainWindow", "Notification button setup complete");
+}
+
+void MainWindow::onNotificationClicked()
+{
+    if (!m_notificationPanel) {
+        m_notificationPanel = new NotificationPanel(this);
+        m_notificationPanel->setWindowFlags(Qt::Popup | Qt::FramelessWindowHint);
+        connect(m_notificationPanel, &NotificationPanel::closeRequested, this, &MainWindow::onNotificationPanelClose);
+    }
+
+    QPoint globalPos = m_notificationButton->mapToGlobal(QPoint(0, m_notificationButton->height()));
+    m_notificationPanel->move(globalPos.x() - 340, globalPos.y());
+    m_notificationPanel->show();
+    m_notificationPanel->raise();
+    m_notificationPanel->activateWindow();
+
+    LOG_INFO("MainWindow", "Notification panel opened");
+}
+
+void MainWindow::onNotificationCountChanged(int count)
+{
+    if (count > 0) {
+        m_notificationBadge->setText(count > 99 ? "99+" : QString::number(count));
+        m_notificationBadge->show();
+    } else {
+        m_notificationBadge->hide();
+    }
+    LOG_INFO("MainWindow", QString("Notification count changed: %1").arg(count));
+}
+
+void MainWindow::onNotificationPanelClose()
+{
+    if (m_notificationPanel) {
+        m_notificationPanel->hide();
+        LOG_INFO("MainWindow", "Notification panel closed");
+    }
 }

@@ -9,9 +9,13 @@
 #include <QToolBar>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QToolButton>
+#include <QMenu>
+#include <QWidgetAction>
 
 class Sidebar;
 class ContentArea;
+class NotificationPanel;
 
 class MainWindow : public QMainWindow
 {
@@ -26,12 +30,17 @@ private slots:
     void onCollapseRequested();
     void onSearchTextChanged(const QString &text);
     void onNewTaskClicked();
+    void refreshTaskList();
+    void onNotificationClicked();
+    void onNotificationCountChanged(int count);
+    void onNotificationPanelClose();
 
 private:
     void setupUI();
     void setupLayout();
     void setupToolbar();
     void setupBottomBar();
+    void setupNotificationButton();
     void loadSettings();
     void saveSettings();
 
@@ -47,6 +56,10 @@ private:
     QLineEdit *m_searchBox;
     QPushButton *m_newTaskButton;
     QPushButton *m_collapseButton;
+    QToolButton *m_notificationButton;
+    QLabel *m_notificationBadge;
+    NotificationPanel *m_notificationPanel;
+    
     QLineEdit *m_quickTaskInput;
     QPushButton *m_quickAddButton;
 };

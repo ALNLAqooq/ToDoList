@@ -5,7 +5,10 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QCheckBox>
+#include <QProgressBar>
+#include <QHBoxLayout>
 #include "../models/task.h"
+#include "../models/tag.h"
 #include "../controllers/task_controller.h"
 
 class TaskCardWidget : public QWidget
@@ -20,6 +23,9 @@ public:
     void updateTask(const Task &task);
     void setCompleted(bool completed);
 
+signals:
+    void editRequested(int taskId);
+
 private slots:
     void onCheckBoxChanged(int state);
     void onEditClicked();
@@ -30,6 +36,7 @@ private:
     void updatePriorityIndicator();
     void updateDueDateDisplay();
     void updateProgressDisplay();
+    void updateTagsDisplay();
 
     TaskController *m_controller;
     int m_taskId;
@@ -39,15 +46,18 @@ private:
     QDateTime m_dueDate;
     bool m_completed;
     double m_progress;
+    QList<Tag> m_tags;
 
     QCheckBox *m_checkBox;
     QLabel *m_titleLabel;
     QLabel *m_descriptionLabel;
     QLabel *m_priorityLabel;
     QLabel *m_dueDateLabel;
-    QLabel *m_progressLabel;
+    QProgressBar *m_progressBar;
     QPushButton *m_editButton;
     QPushButton *m_deleteButton;
+    QWidget *m_tagsWidget;
+    QHBoxLayout *m_tagsLayout;
 };
 
 #endif // TASK_CARD_WIDGET_H
