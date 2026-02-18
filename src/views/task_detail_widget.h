@@ -42,6 +42,7 @@ private:
     QLabel *m_deadlineLabel;
     QLabel *m_progressLabel;
     QLabel *m_statusLabel;
+    QLabel *m_sourceLabel;
     QLabel *m_placeholderLabel;
 
     Task m_currentTask;

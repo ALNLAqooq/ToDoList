@@ -34,6 +34,7 @@ private slots:
     void onNotificationClicked();
     void onNotificationCountChanged(int count);
     void onNotificationPanelClose();
+    void onThemeToggleClicked();
 
 private:
     void setupUI();
@@ -62,6 +63,7 @@ private:
     
     QLineEdit *m_quickTaskInput;
     QPushButton *m_quickAddButton;
+    QPushButton *m_themeButton;
 };
 
 #endif // MAINWINDOW_H

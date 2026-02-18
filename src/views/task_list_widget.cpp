@@ -28,8 +28,8 @@ TaskListWidget::~TaskListWidget()
 void TaskListWidget::setupUI()
 {
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
-    mainLayout->setContentsMargins(20, 20, 20, 20);
-    mainLayout->setSpacing(20);
+    mainLayout->setContentsMargins(12, 12, 12, 12);
+    mainLayout->setSpacing(12);
 
     QLayout *filterLayout = setupFilterBar();
     mainLayout->addLayout(filterLayout);
@@ -67,7 +67,7 @@ void TaskListWidget::setupTaskList()
 
     m_taskListContainer = new QWidget();
     m_taskListLayout = new QVBoxLayout(m_taskListContainer);
-    m_taskListLayout->setSpacing(15);
+    m_taskListLayout->setSpacing(12);
     m_taskListLayout->setContentsMargins(0, 0, 0, 0);
     m_taskListLayout->addStretch();
 

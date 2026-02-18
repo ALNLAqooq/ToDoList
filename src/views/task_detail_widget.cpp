@@ -21,6 +21,7 @@ TaskDetailWidget::TaskDetailWidget(TaskController *controller, QWidget *parent)
     , m_deadlineLabel(nullptr)
     , m_progressLabel(nullptr)
     , m_statusLabel(nullptr)
+    , m_sourceLabel(nullptr)
     , m_placeholderLabel(nullptr)
 {
     setupUI();
@@ -34,20 +35,16 @@ TaskDetailWidget::~TaskDetailWidget()
 void TaskDetailWidget::setupUI()
 {
     m_mainLayout = new QVBoxLayout(this);
-    m_mainLayout->setContentsMargins(20, 20, 20, 20);
-    m_mainLayout->setSpacing(16);
+    m_mainLayout->setContentsMargins(12, 12, 12, 12);
+    m_mainLayout->setSpacing(12);
 
     auto *headerLayout = new QHBoxLayout();
     m_headerLabel = new QLabel("任务详情", this);
-    m_headerLabel->setStyleSheet("font-size: 16px; font-weight: bold; color: #0F172A;");
+    m_headerLabel->setObjectName("detailHeaderLabel");
 
     m_collapseButton = new QPushButton("收起", this);
-    m_collapseButton->setFixedHeight(28);
-    m_collapseButton->setStyleSheet(
-        "QPushButton { background: #F1F5F9; color: #475569; padding: 4px 12px; "
-        "border-radius: 6px; border: 1px solid #E2E8F0; font-size: 12px; }"
-        "QPushButton:hover { background: #E2E8F0; }"
-    );
+    m_collapseButton->setObjectName("detailCollapseButton");
+    m_collapseButton->setFixedHeight(24);
     connect(m_collapseButton, &QPushButton::clicked, this, &TaskDetailWidget::collapseRequested);
 
     headerLayout->addWidget(m_headerLabel);
@@ -56,11 +53,11 @@ void TaskDetailWidget::setupUI()
 
     m_placeholderLabel = new QLabel("请从任务树中选择一个任务查看详情", this);
     m_placeholderLabel->setAlignment(Qt::AlignCenter);
-    m_placeholderLabel->setStyleSheet("font-size: 16px; color: #94A3B8; padding: 50px;");
+    m_placeholderLabel->setObjectName("detailPlaceholder");
 
     m_titleLabel = new QLabel(this);
     m_titleLabel->setWordWrap(true);
-    m_titleLabel->setStyleSheet("font-size: 24px; font-weight: bold; color: #0F172A;");
+    m_titleLabel->setObjectName("detailTitle");
     m_titleLabel->hide();
 
     m_statusLabel = new QLabel(this);
@@ -69,52 +66,48 @@ void TaskDetailWidget::setupUI()
     m_statusLabel->hide();
 
     m_priorityLabel = new QLabel(this);
-    m_priorityLabel->setStyleSheet("font-size: 14px; color: #64748B;");
+    m_priorityLabel->setProperty("detailMuted", true);
     m_priorityLabel->hide();
 
     m_deadlineLabel = new QLabel(this);
-    m_deadlineLabel->setStyleSheet("font-size: 14px; color: #64748B;");
+    m_deadlineLabel->setProperty("detailMuted", true);
     m_deadlineLabel->hide();
 
     m_progressLabel = new QLabel(this);
-    m_progressLabel->setStyleSheet("font-size: 14px; color: #64748B;");
+    m_progressLabel->setProperty("detailMuted", true);
     m_progressLabel->hide();
 
+    m_sourceLabel = new QLabel(this);
+    m_sourceLabel->setObjectName("detailSourceLabel");
+    m_sourceLabel->setWordWrap(true);
+    m_sourceLabel->hide();
+
     QLabel *descTitle = new QLabel("描述:", this);
-    descTitle->setStyleSheet("font-size: 16px; font-weight: bold; color: #0F172A;");
+    descTitle->setProperty("sectionTitle", true);
     descTitle->hide();
 
     m_descriptionLabel = new QLabel(this);
     m_descriptionLabel->setWordWrap(true);
-    m_descriptionLabel->setStyleSheet("font-size: 14px; color: #475569; padding: 12px; background: #F8FAFC; border-radius: 8px;");
+    m_descriptionLabel->setObjectName("detailDescription");
     m_descriptionLabel->hide();
 
     m_tagTitleLabel = new QLabel("标签:", this);
-    m_tagTitleLabel->setStyleSheet("font-size: 16px; font-weight: bold; color: #0F172A;");
+    m_tagTitleLabel->setProperty("sectionTitle", true);
     m_tagTitleLabel->hide();
 
     m_tagValueLabel = new QLabel(this);
     m_tagValueLabel->setWordWrap(true);
-    m_tagValueLabel->setStyleSheet("font-size: 13px; color: #475569; padding: 6px 8px; background: #F1F5F9; border-radius: 6px;");
+    m_tagValueLabel->setObjectName("detailTagValue");
     m_tagValueLabel->hide();
 
     m_subtaskTitleLabel = new QLabel("子任务:", this);
-    m_subtaskTitleLabel->setStyleSheet("font-size: 16px; font-weight: bold; color: #0F172A;");
+    m_subtaskTitleLabel->setProperty("sectionTitle", true);
     m_subtaskTitleLabel->hide();
 
     m_subtaskList = new QListWidget(this);
     m_subtaskList->setSelectionMode(QAbstractItemView::NoSelection);
     m_subtaskList->setMaximumHeight(140);
-    m_subtaskList->setStyleSheet(R"(
-        QListWidget {
-            border: 1px solid #E2E8F0;
-            border-radius: 8px;
-            background: #FFFFFF;
-            padding: 6px;
-            font-size: 13px;
-            color: #334155;
-        }
-    )");
+    m_subtaskList->setObjectName("detailSubtaskList");
     m_subtaskList->hide();
 
     m_mainLayout->addLayout(headerLayout);
@@ -124,6 +117,7 @@ void TaskDetailWidget::setupUI()
     m_mainLayout->addWidget(m_priorityLabel);
     m_mainLayout->addWidget(m_deadlineLabel);
     m_mainLayout->addWidget(m_progressLabel);
+    m_mainLayout->addWidget(m_sourceLabel);
     m_mainLayout->addWidget(descTitle);
     m_mainLayout->addWidget(m_descriptionLabel);
     m_mainLayout->addWidget(m_tagTitleLabel);
@@ -153,6 +147,7 @@ void TaskDetailWidget::clearTask()
     m_deadlineLabel->hide();
     m_progressLabel->hide();
     m_statusLabel->hide();
+    m_sourceLabel->hide();
 }
 
 void TaskDetailWidget::updateDisplay()
@@ -197,6 +192,30 @@ void TaskDetailWidget::updateDisplay()
 
     m_progressLabel->setText(QString("进度: %1%").arg(static_cast<int>(m_currentTask.progress() * 100)));
     m_progressLabel->show();
+
+    if (m_currentTask.parentId() > 0 && m_controller) {
+        Task parentTask = m_controller->getTaskById(m_currentTask.parentId());
+        if (parentTask.id() > 0) {
+            QString timeStr;
+            if (parentTask.createdAt().isValid()) {
+                timeStr = parentTask.createdAt().toString("yyyy-MM-dd HH:mm");
+            }
+            QString info = timeStr.isEmpty()
+                ? parentTask.title()
+                : QString("%1 / %2").arg(timeStr, parentTask.title());
+            m_sourceLabel->setText(QString("来源任务: %1").arg(info));
+            if (timeStr.isEmpty()) {
+                m_sourceLabel->setToolTip(QString("父任务: %1").arg(parentTask.title()));
+            } else {
+                m_sourceLabel->setToolTip(QString("父任务: %1\n创建时间: %2").arg(parentTask.title(), timeStr));
+            }
+            m_sourceLabel->show();
+        } else {
+            m_sourceLabel->hide();
+        }
+    } else {
+        m_sourceLabel->hide();
+    }
 
     if (!m_currentTask.description().isEmpty()) {
         m_descriptionLabel->setText(m_currentTask.description());

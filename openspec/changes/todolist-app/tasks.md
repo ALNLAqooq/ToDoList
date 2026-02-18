@@ -90,13 +90,13 @@
 
 ## 10. Search and Filter
 
-- [ ] 10.1 Create SearchWidget (searchwidget.h/cpp)
-- [ ] 10.2 Implement real-time search as user types
+- [x] 10.1 Create SearchWidget (searchwidget.h/cpp)
+- [x] 10.2 Implement real-time search as user types
 - [ ] 10.3 Add advanced search panel with filters
 - [ ] 10.4 Implement priority filter dropdown
 - [ ] 10.5 Implement status filter dropdown
 - [ ] 10.6 Implement date filter dropdown (Today, This Week, This Month, Overdue)
-- [ ] 10.7 Implement tag filter (multi-select)
+- [x] 10.7 Implement tag filter (multi-select)
 - [ ] 10.8 Implement sort options (deadline, priority, created, manual)
 - [x] 10.9 Set up FTS5 full-text search in SQLite
 - [x] 10.10 Create FTS virtual table and triggers
@@ -105,7 +105,7 @@
 
 - [x] 11.1 Implement task_dependencies table operations
 - [ ] 11.2 Add dependency display on task card
-- [ ] 11.3 Implement dependency selection in task dialog
+- [x] 11.3 Implement dependency selection in task dialog
 - [ ] 11.4 Add circular dependency detection
 - [ ] 11.5 Implement flat display for circular dependencies
 
@@ -114,8 +114,8 @@
 - [x] 12.1 Add file_path field to tasks table
 - [x] 12.2 Implement file association in task dialog
 - [ ] 12.3 Add file type icon display
-- [ ] 12.4 Implement open file with default application (QDesktopServices)
-- [ ] 12.5 Add file validation (exists check)
+- [x] 12.4 Implement open file with default application (QDesktopServices)
+- [x] 12.5 Add file validation (exists check)
 - [ ] 12.6 Handle missing file scenarios with warning
 
 ## 13. Notification System
@@ -134,7 +134,7 @@
 - [x] 14.1 Implement soft delete (is_deleted flag)
 - [ ] 14.2 Add recycle bin view in sidebar
 - [x] 14.3 Implement restore from recycle bin
-- [ ] 14.4 Implement permanent delete with confirmation
+- [x] 14.4 Implement permanent delete with confirmation
 - [ ] 14.5 Add parent task delete handling (cascade or promote children)
 - [x] 14.6 Implement 14-day auto-cleanup
 - [ ] 14.7 Add 3-day and 1-day deletion warnings

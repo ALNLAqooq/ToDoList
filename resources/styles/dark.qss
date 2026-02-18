@@ -1,45 +1,3 @@
-@import url(common.qss);
-
-:root {
-    --bg-primary: #0F172A;
-    --bg-secondary: #1E293B;
-    --bg-tertiary: #334155;
-    
-    --text-primary: #F8FAFC;
-    --text-secondary: #94A3B8;
-    --text-disabled: #64748B;
-    
-    --border-color: #334155;
-    
-    --color-primary: #3B82F6;
-    --color-primary-hover: #2563EB;
-    --color-primary-active: #1D4ED8;
-    --color-primary-light: #60A5FA;
-    --color-on-primary: #FFFFFF;
-    
-    --color-success: #10B981;
-    --color-success-hover: #059669;
-    
-    --color-warning: #F59E0B;
-    
-    --color-danger: #EF4444;
-    --color-danger-hover: #DC2626;
-    
-    --font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
-    --font-size-base: 14px;
-    
-    --spacing-xs: 4px;
-    --spacing-sm: 6px;
-    --spacing-md: 8px;
-    --spacing-lg: 12px;
-    --spacing-xl: 16px;
-    
-    --border-radius-xs: 4px;
-    --border-radius-sm: 6px;
-    --border-radius-md: 8px;
-    --border-radius-lg: 12px;
-}
-
 QMainWindow {
     background-color: #0F172A;
 }
@@ -323,11 +281,30 @@ QTreeView {
     border: none;
     alternate-background-color: #1E293B;
     show-decoration-selected: 1;
+    outline: 0;
+}
+
+QTreeView::branch:selected,
+QTreeView::branch:hover,
+QTreeView::branch:has-children:selected,
+QTreeView::branch:has-children:!has-siblings:selected,
+QTreeView::branch:open:selected,
+QTreeView::branch:closed:selected {
+    background: transparent;
+}
+
+QTreeView#taskTreeView {
+    font-size: 14px;
+    show-decoration-selected: 0;
 }
 
 QTreeView::item {
     padding: 6px 8px;
     border-radius: 4px;
+}
+
+QTreeView#taskTreeView::item {
+    padding: 10px 12px;
 }
 
 QTreeView::item:hover {
@@ -356,6 +333,7 @@ QTreeView::branch:open:has-children:has-siblings {
 QListView {
     background-color: transparent;
     border: none;
+    outline: 0;
 }
 
 QListView::item {
@@ -376,6 +354,7 @@ QTableView {
     background-color: transparent;
     border: none;
     gridline-color: #334155;
+    outline: 0;
 }
 
 QTableView::item {
@@ -390,6 +369,13 @@ QTableView::item:hover {
 QTableView::item:selected {
     background-color: #3B82F6;
     color: #FFFFFF;
+}
+
+QTableView::item:focus,
+QTreeView::item:focus,
+QListView::item:focus,
+QAbstractItemView::item:focus {
+    outline: 0;
 }
 
 QHeaderView::section {
@@ -633,7 +619,6 @@ TaskCardWidget {
     background-color: #1E293B;
     border: 1px solid #334155;
     border-radius: 8px;
-    transition: background-color 0.2s, border-color 0.2s;
 }
 
 TaskCardWidget:hover {
@@ -678,4 +663,281 @@ PriorityIndicator[medium="true"] {
 
 PriorityIndicator[low="true"] {
     background-color: #10B981;
+}
+
+QToolBar#mainToolbar {
+    spacing: 6px;
+    padding: 4px 12px;
+}
+
+#toolbarSpacer {
+    background-color: transparent;
+}
+
+#bottomBar {
+    background-color: #1E293B;
+    border-top: 1px solid #334155;
+}
+
+QPushButton[iconButton="true"],
+QToolButton[iconButton="true"] {
+    background-color: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 4px;
+    color: #94A3B8;
+}
+
+QPushButton[iconButton="true"]:hover,
+QToolButton[iconButton="true"]:hover {
+    background-color: #334155;
+    border-color: #334155;
+    color: #F8FAFC;
+}
+
+QPushButton[iconButton="true"]:pressed,
+QToolButton[iconButton="true"]:pressed {
+    background-color: #1E293B;
+}
+
+#groupLabel {
+    font-size: 20px;
+    font-weight: 700;
+    color: #F8FAFC;
+}
+
+#contentPlaceholder {
+    color: #94A3B8;
+    font-size: 18px;
+    padding: 40px;
+}
+
+#tagFilterWidget {
+    background-color: #0F172A;
+    border: 1px solid #334155;
+    border-radius: 14px;
+}
+
+#tagFilterLabel {
+    font-size: 12px;
+}
+
+#tagClearButton {
+    background-color: #334155;
+    color: #F8FAFC;
+    padding: 2px 8px;
+    border-radius: 10px;
+    border: none;
+    font-size: 12px;
+}
+
+#tagClearButton:hover {
+    background-color: #475569;
+}
+
+#detailHeaderLabel {
+    font-size: 16px;
+    font-weight: 700;
+    color: #F8FAFC;
+}
+
+#detailTitle {
+    font-size: 22px;
+    font-weight: 700;
+    color: #F8FAFC;
+}
+
+QLabel[sectionTitle="true"] {
+    font-size: 16px;
+    font-weight: 700;
+    color: #F8FAFC;
+}
+
+QLabel[detailMuted="true"] {
+    font-size: 14px;
+    color: #94A3B8;
+}
+
+#detailPlaceholder {
+    font-size: 14px;
+    color: #94A3B8;
+    padding: 32px;
+}
+
+#detailDescription {
+    background-color: #1E293B;
+    color: #E2E8F0;
+    padding: 10px;
+    border-radius: 8px;
+}
+
+#detailTagValue {
+    background-color: #334155;
+    color: #E2E8F0;
+    padding: 6px 8px;
+    border-radius: 6px;
+}
+
+#detailSourceLabel {
+    color: #F87171;
+    font-size: 13px;
+}
+
+/* Notification panel (dark) */
+#notificationPanel {
+    background-color: #0F172A;
+}
+
+#notificationHeader {
+    background-color: #1E293B;
+    border-bottom: 1px solid #334155;
+}
+
+#notificationHeaderLabel {
+    color: #F8FAFC;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+#notificationMarkAll {
+    background: transparent;
+    color: #60A5FA;
+    border: none;
+    font-size: 13px;
+    padding: 6px 12px;
+}
+
+#notificationMarkAll:hover {
+    background: #0B1220;
+}
+
+#notificationMarkAll:disabled {
+    color: #64748B;
+}
+
+#notificationClearAll {
+    background: transparent;
+    color: #F87171;
+    border: none;
+    font-size: 13px;
+    padding: 6px 12px;
+}
+
+#notificationClearAll:hover {
+    background: #1F2937;
+}
+
+#notificationClearAll:disabled {
+    color: #64748B;
+}
+
+#notificationScroll {
+    border: none;
+    background: #0F172A;
+}
+
+#notificationScroll QScrollBar:vertical {
+    background: #1E293B;
+    width: 8px;
+    border-radius: 4px;
+}
+
+#notificationScroll QScrollBar::handle:vertical {
+    background: #475569;
+    border-radius: 4px;
+}
+
+#notificationScroll QScrollBar::handle:vertical:hover {
+    background: #64748B;
+}
+
+#notificationEmpty {
+    color: #94A3B8;
+    font-size: 14px;
+    padding: 40px 0;
+}
+
+#notificationItem {
+    background: #1E293B;
+    border: 1px solid #334155;
+    border-radius: 8px;
+}
+
+#notificationItem:hover {
+    background: #243042;
+}
+
+#notificationTypeIcon {
+    color: #FFFFFF;
+    border-radius: 6px;
+    font-size: 16px;
+}
+
+#notificationTitle {
+    color: #F8FAFC;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+#notificationMessage {
+    color: #94A3B8;
+    font-size: 13px;
+}
+
+#notificationTime {
+    color: #64748B;
+    font-size: 12px;
+}
+
+#notificationMarkRead {
+    background: #3B82F6;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: none;
+    font-size: 12px;
+}
+
+#notificationMarkRead:hover {
+    background: #2563EB;
+}
+
+#notificationMarkRead:disabled {
+    background: #475569;
+    color: #CBD5E1;
+}
+
+#notificationDelete {
+    background: #EF4444;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: none;
+    font-size: 12px;
+}
+
+#notificationDelete:hover {
+    background: #DC2626;
+}
+
+QListWidget#detailSubtaskList {
+    border: 1px solid #334155;
+    border-radius: 8px;
+    background-color: #0F172A;
+    padding: 6px;
+    font-size: 13px;
+    color: #E2E8F0;
+}
+
+#detailCollapseButton {
+    background-color: #334155;
+    color: #E2E8F0;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid #475569;
+    font-size: 12px;
+}
+
+#detailCollapseButton:hover {
+    background-color: #475569;
 }

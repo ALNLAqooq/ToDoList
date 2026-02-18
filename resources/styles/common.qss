@@ -282,6 +282,7 @@ QTreeView {
     border: none;
     alternate-background-color: var(--bg-tertiary);
     show-decoration-selected: 1;
+    outline: 0;
 }
 
 QTreeView::item {
@@ -315,6 +316,7 @@ QTreeView::branch:open:has-children:has-siblings {
 QListView {
     background-color: transparent;
     border: none;
+    outline: 0;
 }
 
 QListView::item {
@@ -335,6 +337,7 @@ QTableView {
     background-color: transparent;
     border: none;
     gridline-color: var(--border-color);
+    outline: 0;
 }
 
 QTableView::item {
@@ -349,6 +352,13 @@ QTableView::item:hover {
 QTableView::item:selected {
     background-color: var(--color-primary);
     color: var(--color-on-primary);
+}
+
+QTableView::item:focus,
+QTreeView::item:focus,
+QListView::item:focus,
+QAbstractItemView::item:focus {
+    outline: 0;
 }
 
 QHeaderView::section {

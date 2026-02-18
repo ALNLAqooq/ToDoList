@@ -14,7 +14,15 @@
 #include <QPen>
 #include <QColor>
 #include <QStyle>
+#include <QFontMetrics>
 #include <functional>
+
+namespace {
+constexpr int RoleTaskId = Qt::UserRole;
+constexpr int RoleCompleted = Qt::UserRole + 1;
+constexpr int RoleHasChildren = Qt::UserRole + 2;
+constexpr int RoleSourceInfo = Qt::UserRole + 3;
+}
 
 TaskTreeItemDelegate::TaskTreeItemDelegate(QObject *parent)
     : QStyledItemDelegate(parent)
@@ -33,6 +41,9 @@ void TaskTreeItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
 {
     QStyleOptionViewItem opt = option;
     initStyleOption(&opt, index);
+    opt.showDecorationSelected = false;
+    const bool isSelected = opt.state & QStyle::State_Selected;
+    opt.state &= ~QStyle::State_Selected;
 
     QStyle *style = opt.widget ? opt.widget->style() : QApplication::style();
     opt.text.clear();
@@ -40,7 +51,16 @@ void TaskTreeItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
     style->drawControl(QStyle::CE_ItemViewItem, &opt, painter, opt.widget);
 
     const QRect cbRect = checkboxRect(option);
-    const bool completed = index.data(Qt::UserRole + 1).toBool();
+    if (isSelected) {
+        QColor highlight = opt.palette.color(QPalette::Highlight);
+        QRect selectionRect = option.rect;
+        int selectionLeft = qMax(option.rect.left() + 2, cbRect.left() - 4);
+        selectionRect.setLeft(selectionLeft);
+        selectionRect.setRight(option.rect.right() - 2);
+        painter->fillRect(selectionRect, highlight);
+    }
+
+    const bool completed = index.data(RoleCompleted).toBool();
 
     painter->save();
     painter->setRenderHint(QPainter::Antialiasing, true);
@@ -64,8 +84,12 @@ void TaskTreeItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
 
     painter->restore();
 
+    const QString titleText = index.data(Qt::DisplayRole).toString();
+    const QString sourceInfo = index.data(RoleSourceInfo).toString();
+
     QRect textRect = option.rect;
     textRect.setLeft(cbRect.right() + 8);
+
     painter->save();
     QColor textColor = (option.state & QStyle::State_Selected)
         ? opt.palette.color(QPalette::HighlightedText)
@@ -74,9 +98,48 @@ void TaskTreeItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
     if (fg.canConvert<QBrush>()) {
         textColor = fg.value<QBrush>().color();
     }
-    painter->setPen(textColor);
-    painter->drawText(textRect, Qt::AlignVCenter | Qt::AlignLeft, index.data(Qt::DisplayRole).toString());
+
+    if (sourceInfo.isEmpty()) {
+        painter->setPen(textColor);
+        painter->drawText(textRect, Qt::AlignVCenter | Qt::AlignLeft, titleText);
+    } else {
+        QFont titleFont = opt.font;
+        QFont sourceFont = opt.font;
+
+        QFontMetrics titleFm(titleFont);
+        QFontMetrics sourceFm(sourceFont);
+        const QString sourceText = QString("来源: %1").arg(sourceInfo);
+        const int rightPadding = 8;
+        int sourceWidth = sourceFm.horizontalAdvance(sourceText);
+        int rightEdge = textRect.right() - rightPadding;
+        int sourceLeft = qMax(textRect.left(), rightEdge - sourceWidth + 1);
+
+        QRect sourceRect(sourceLeft, textRect.top(), rightEdge - sourceLeft + 1, textRect.height());
+        QRect titleRect(textRect.left(), textRect.top(), sourceLeft - textRect.left() - 8, textRect.height());
+
+        if (titleRect.width() < 0) {
+            titleRect.setWidth(0);
+        }
+
+        painter->setFont(titleFont);
+        painter->setPen(textColor);
+        const QString elidedTitle = titleFm.elidedText(titleText, Qt::ElideRight, titleRect.width());
+        painter->drawText(titleRect, Qt::AlignVCenter | Qt::AlignLeft, elidedTitle);
+
+        QColor secondary = textColor;
+        secondary.setAlpha(180);
+        painter->setFont(sourceFont);
+        painter->setPen(secondary);
+        painter->drawText(sourceRect, Qt::AlignVCenter | Qt::AlignRight, sourceText);
+    }
     painter->restore();
+}
+
+QSize TaskTreeItemDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
+{
+    QSize size = QStyledItemDelegate::sizeHint(option, index);
+    int height = qMax(size.height(), option.fontMetrics.height() + 14);
+    return QSize(size.width(), height);
 }
 
 bool TaskTreeItemDelegate::editorEvent(QEvent *event, QAbstractItemModel *model, const QStyleOptionViewItem &option, const QModelIndex &index)
@@ -85,7 +148,7 @@ bool TaskTreeItemDelegate::editorEvent(QEvent *event, QAbstractItemModel *model,
     if (event->type() == QEvent::MouseButtonRelease) {
         auto *mouseEvent = static_cast<QMouseEvent *>(event);
         if (checkboxRect(option).contains(mouseEvent->pos())) {
-            int taskId = index.data(Qt::UserRole).toInt();
+            int taskId = index.data(RoleTaskId).toInt();
             if (taskId > 0) {
                 emit toggleRequested(taskId);
                 return true;
@@ -144,6 +207,7 @@ void TaskTree::setupUI()
     m_treeView->setAcceptDrops(true);
     m_treeView->setDropIndicatorShown(true);
     m_treeView->setDragDropMode(QAbstractItemView::InternalMove);
+    m_treeView->setUniformRowHeights(false);
     
     m_treeView->header()->setSectionResizeMode(0, QHeaderView::Stretch);
     m_treeView->header()->setStretchLastSection(true);
@@ -243,13 +307,19 @@ void TaskTree::setupContextMenu()
     m_contextMenu->addAction(m_deleteAction);
 }
 
-QStandardItem* TaskTree::createTaskItem(const Task &task)
+QStandardItem* TaskTree::createTaskItem(const Task &task, const QString &sourceInfo, const QString &sourceTooltip)
 {
     QList<QStandardItem*> items;
     QStandardItem *item = new QStandardItem(task.title());
-    item->setData(task.id(), Qt::UserRole);
-    item->setData(task.isCompleted(), Qt::UserRole + 1);
-    item->setData(task.hasChildren(), Qt::UserRole + 2);
+    item->setData(task.id(), RoleTaskId);
+    item->setData(task.isCompleted(), RoleCompleted);
+    item->setData(task.hasChildren(), RoleHasChildren);
+    if (!sourceInfo.isEmpty()) {
+        item->setData(sourceInfo, RoleSourceInfo);
+        if (!sourceTooltip.isEmpty()) {
+            item->setToolTip(sourceTooltip);
+        }
+    }
     
     if (task.isCompleted()) {
         item->setForeground(QBrush(QColor("#888888")));
@@ -305,6 +375,8 @@ void TaskTree::loadAllTasks()
             parentItem->appendRow(childItem);
         }
     }
+
+    emit taskCountChanged(m_treeModel->rowCount());
 }
 
 void TaskTree::loadFilteredTasks(const QString &group, int tagId)
@@ -388,9 +460,50 @@ void TaskTree::loadFilteredTasks(const QString &group, int tagId)
     }
     
     QMap<int, QStandardItem*> itemMap;
-    
+    QSet<int> taskIds;
     for (const Task &task : tasks) {
-        QStandardItem *item = createTaskItem(task);
+        taskIds.insert(task.id());
+    }
+
+    QMap<int, Task> parentCache;
+    auto buildSourceInfo = [&](int parentId, QString *tooltipOut) -> QString {
+        if (parentId <= 0) {
+            return QString();
+        }
+        Task parentTask;
+        if (parentCache.contains(parentId)) {
+            parentTask = parentCache.value(parentId);
+        } else {
+            parentTask = m_controller->getTaskById(parentId);
+            parentCache.insert(parentId, parentTask);
+        }
+        if (parentTask.id() <= 0) {
+            return QString();
+        }
+        QString timeStr;
+        if (parentTask.createdAt().isValid()) {
+            timeStr = parentTask.createdAt().toString("yyyy-MM-dd HH:mm");
+        }
+        if (tooltipOut) {
+            if (timeStr.isEmpty()) {
+                *tooltipOut = QString("父任务: %1").arg(parentTask.title());
+            } else {
+                *tooltipOut = QString("父任务: %1\n创建时间: %2").arg(parentTask.title(), timeStr);
+            }
+        }
+        if (timeStr.isEmpty()) {
+            return parentTask.title();
+        }
+        return QString("%1 / %2").arg(timeStr, parentTask.title());
+    };
+
+    for (const Task &task : tasks) {
+        QString sourceInfo;
+        QString sourceTooltip;
+        if (task.parentId() > 0 && !taskIds.contains(task.parentId())) {
+            sourceInfo = buildSourceInfo(task.parentId(), &sourceTooltip);
+        }
+        QStandardItem *item = createTaskItem(task, sourceInfo, sourceTooltip);
         m_tasksCache[task.id()] = task;
         itemMap[task.id()] = item;
     }
@@ -408,6 +521,8 @@ void TaskTree::loadFilteredTasks(const QString &group, int tagId)
             parentItem->appendRow(childItem);
         }
     }
+
+    emit taskCountChanged(m_treeModel->rowCount());
 }
 
 void TaskTree::loadTasks()
@@ -439,7 +554,7 @@ void TaskTree::refreshTasks()
     int selectedId = -1;
     QModelIndex currentIndex = m_treeView->currentIndex();
     if (currentIndex.isValid()) {
-        selectedId = currentIndex.data(Qt::UserRole).toInt();
+        selectedId = currentIndex.data(RoleTaskId).toInt();
     }
 
     loadTasks(m_currentGroup, m_currentTagId);
@@ -463,6 +578,15 @@ void TaskTree::collapseAll()
     m_treeView->collapseAll();
 }
 
+void TaskTree::clearSelection()
+{
+    if (!m_treeView) {
+        return;
+    }
+    m_treeView->clearSelection();
+    m_treeView->setCurrentIndex(QModelIndex());
+}
+
 Task TaskTree::getTaskFromIndex(const QModelIndex &index) const
 {
     if (!index.isValid()) {
@@ -474,7 +598,7 @@ Task TaskTree::getTaskFromIndex(const QModelIndex &index) const
         return Task();
     }
     
-    int taskId = item->data(Qt::UserRole).toInt();
+    int taskId = item->data(RoleTaskId).toInt();
     if (m_tasksCache.contains(taskId)) {
         return m_tasksCache[taskId];
     }
@@ -495,7 +619,7 @@ QSet<int> TaskTree::collectExpandedTaskIds() const
         }
         QModelIndex idx = item->index();
         if (m_treeView->isExpanded(idx)) {
-            int id = item->data(Qt::UserRole).toInt();
+            int id = item->data(RoleTaskId).toInt();
             if (id > 0) {
                 ids.insert(id);
             }
@@ -522,7 +646,7 @@ void TaskTree::restoreExpandedTaskIds(const QSet<int> &ids)
         if (!item) {
             return;
         }
-        int id = item->data(Qt::UserRole).toInt();
+        int id = item->data(RoleTaskId).toInt();
         if (ids.contains(id)) {
             m_treeView->expand(item->index());
         }
@@ -546,7 +670,7 @@ QModelIndex TaskTree::findIndexByTaskId(int taskId) const
         if (!item) {
             return QModelIndex();
         }
-        int id = item->data(Qt::UserRole).toInt();
+        int id = item->data(RoleTaskId).toInt();
         if (id == taskId) {
             return item->index();
         }
@@ -623,7 +747,7 @@ void TaskTree::onExpandItem(const QModelIndex &index)
     }
     
     if (item->rowCount() == 1 && item->child(0)->text() == "Loading...") {
-        int taskId = item->data(Qt::UserRole).toInt();
+    int taskId = item->data(RoleTaskId).toInt();
         loadChildTasks(taskId, item);
     }
 }

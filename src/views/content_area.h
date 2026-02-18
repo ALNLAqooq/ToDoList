@@ -43,6 +43,7 @@ private slots:
     void onTaskCompletionChanged(int taskId, bool completed);
     void onTaskDeleted(int taskId);
     void onClearTagFilter();
+    void onTaskCountChanged(int count);
 
 private:
     void setupUI();
@@ -50,6 +51,8 @@ private:
     void collapseTaskDetailPanel();
     void updateDetailForTask(int taskId);
     void updateTagFilterDisplay();
+    void updateEmptyState(int count);
+    QString randomEmptyMessage() const;
 
     QVBoxLayout *m_mainLayout;
     QHBoxLayout *m_headerLayout;

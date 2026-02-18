@@ -11,6 +11,8 @@ NotificationItem::NotificationItem(const Notification &notification, QWidget *pa
     setupUI();
 
     m_typeIcon->setText(getTypeIcon(notification.type()));
+    m_typeIcon->setStyleSheet(QString("QLabel#notificationTypeIcon { background: %1; }")
+                                .arg(getTypeColor(notification.type())));
     m_titleLabel->setText(notification.title());
     m_messageLabel->setText(notification.message());
     m_timeLabel->setText(notification.createdAt().toString("yyyy-MM-dd hh:mm"));
@@ -22,11 +24,9 @@ NotificationItem::NotificationItem(const Notification &notification, QWidget *pa
 
 void NotificationItem::setupUI()
 {
-    setStyleSheet(
-        "NotificationItem { background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; }"
-        "NotificationItem:hover { background: #F8FAFC; }"
-    );
-    setFixedHeight(100);
+    setObjectName("notificationItem");
+    setMinimumHeight(88);
+    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
     setContentsMargins(0, 0, 0, 0);
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
@@ -39,26 +39,26 @@ void NotificationItem::setupUI()
     m_typeIcon = new QLabel(this);
     m_typeIcon->setFixedSize(32, 32);
     m_typeIcon->setAlignment(Qt::AlignCenter);
-    m_typeIcon->setStyleSheet(QString("QLabel { background: %1; color: white; border-radius: 6px; font-size: 16px; }")
-                                .arg(getTypeColor(m_type)));
+    m_typeIcon->setObjectName("notificationTypeIcon");
     topLayout->addWidget(m_typeIcon);
 
     QVBoxLayout *textLayout = new QVBoxLayout();
     textLayout->setSpacing(4);
 
     m_titleLabel = new QLabel(this);
-    m_titleLabel->setStyleSheet("QLabel { color: #0F172A; font-weight: 600; font-size: 14px; }");
+    m_titleLabel->setObjectName("notificationTitle");
     textLayout->addWidget(m_titleLabel);
 
     m_messageLabel = new QLabel(this);
-    m_messageLabel->setStyleSheet("QLabel { color: #64748B; font-size: 13px; }");
+    m_messageLabel->setObjectName("notificationMessage");
     m_messageLabel->setWordWrap(true);
+    m_messageLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
     textLayout->addWidget(m_messageLabel);
 
     topLayout->addLayout(textLayout, 1);
 
     m_timeLabel = new QLabel(this);
-    m_timeLabel->setStyleSheet("QLabel { color: #94A3B8; font-size: 12px; }");
+    m_timeLabel->setObjectName("notificationTime");
     m_timeLabel->setAlignment(Qt::AlignRight);
     topLayout->addWidget(m_timeLabel);
 
@@ -71,21 +71,13 @@ void NotificationItem::setupUI()
 
     m_markReadButton = new QPushButton(this);
     m_markReadButton->setText("标记为已读");
-    m_markReadButton->setStyleSheet(
-        "QPushButton { background: #3B82F6; color: white; padding: 6px 12px; "
-        "border-radius: 6px; border: none; font-size: 12px; }"
-        "QPushButton:hover { background: #2563EB; }"
-    );
+    m_markReadButton->setObjectName("notificationMarkRead");
     connect(m_markReadButton, &QPushButton::clicked, this, &NotificationItem::onMarkAsRead);
     buttonLayout->addWidget(m_markReadButton);
 
     m_deleteButton = new QPushButton(this);
     m_deleteButton->setText("删除");
-    m_deleteButton->setStyleSheet(
-        "QPushButton { background: #EF4444; color: white; padding: 6px 12px; "
-        "border-radius: 6px; border: none; font-size: 12px; }"
-        "QPushButton:hover { background: #DC2626; }"
-    );
+    m_deleteButton->setObjectName("notificationDelete");
     connect(m_deleteButton, &QPushButton::clicked, this, &NotificationItem::onDelete);
     buttonLayout->addWidget(m_deleteButton);
 
@@ -127,10 +119,6 @@ void NotificationItem::setRead(bool read)
     m_isRead = read;
     if (read) {
         m_markReadButton->setEnabled(false);
-        m_markReadButton->setStyleSheet(
-            "QPushButton { background: #94A3B8; color: white; padding: 6px 12px; "
-            "border-radius: 6px; border: none; font-size: 12px; }"
-        );
     }
 }
 
@@ -167,8 +155,10 @@ NotificationPanel::~NotificationPanel()
 
 void NotificationPanel::setupUI()
 {
-    setFixedWidth(380);
-    setStyleSheet("QWidget { background: #F8FAFC; }");
+    setFixedWidth(460);
+    setMinimumHeight(520);
+    setMaximumHeight(720);
+    setObjectName("notificationPanel");
 
     m_mainLayout = new QVBoxLayout(this);
     m_mainLayout->setContentsMargins(0, 0, 0, 0);
@@ -176,36 +166,26 @@ void NotificationPanel::setupUI()
 
     QWidget *headerWidget = new QWidget(this);
     headerWidget->setFixedHeight(60);
-    headerWidget->setStyleSheet("QWidget { background: #FFFFFF; border-bottom: 1px solid #E2E8F0; }");
+    headerWidget->setObjectName("notificationHeader");
 
     QHBoxLayout *headerLayout = new QHBoxLayout(headerWidget);
     headerLayout->setContentsMargins(16, 0, 16, 0);
 
     m_headerLabel = new QLabel(this);
-    m_headerLabel->setStyleSheet("QLabel { color: #0F172A; font-weight: 600; font-size: 16px; }");
+    m_headerLabel->setObjectName("notificationHeaderLabel");
     headerLayout->addWidget(m_headerLabel);
 
     headerLayout->addStretch();
 
     m_markAllButton = new QPushButton(this);
     m_markAllButton->setText("全部标记");
-    m_markAllButton->setStyleSheet(
-        "QPushButton { background: transparent; color: #3B82F6; border: none; "
-        "font-size: 13px; padding: 6px 12px; }"
-        "QPushButton:hover { background: #EFF6FF; }"
-        "QPushButton:disabled { color: #94A3B8; }"
-    );
+    m_markAllButton->setObjectName("notificationMarkAll");
     connect(m_markAllButton, &QPushButton::clicked, this, &NotificationPanel::onMarkAllAsRead);
     headerLayout->addWidget(m_markAllButton);
 
     m_clearAllButton = new QPushButton(this);
     m_clearAllButton->setText("清空");
-    m_clearAllButton->setStyleSheet(
-        "QPushButton { background: transparent; color: #EF4444; border: none; "
-        "font-size: 13px; padding: 6px 12px; }"
-        "QPushButton:hover { background: #FEF2F2; }"
-        "QPushButton:disabled { color: #94A3B8; }"
-    );
+    m_clearAllButton->setObjectName("notificationClearAll");
     connect(m_clearAllButton, &QPushButton::clicked, this, &NotificationPanel::onClearAll);
     headerLayout->addWidget(m_clearAllButton);
 
@@ -213,12 +193,7 @@ void NotificationPanel::setupUI()
 
     m_scrollArea = new QScrollArea(this);
     m_scrollArea->setWidgetResizable(true);
-    m_scrollArea->setStyleSheet(
-        "QScrollArea { border: none; background: #F8FAFC; }"
-        "QScrollBar:vertical { background: #E2E8F0; width: 8px; border-radius: 4px; }"
-        "QScrollBar::handle:vertical { background: #94A3B8; border-radius: 4px; }"
-        "QScrollBar::handle:vertical:hover { background: #64748B; }"
-    );
+    m_scrollArea->setObjectName("notificationScroll");
 
     m_contentWidget = new QWidget(this);
     m_contentLayout = new QVBoxLayout(m_contentWidget);
@@ -228,7 +203,7 @@ void NotificationPanel::setupUI()
     m_emptyLabel = new QLabel(this);
     m_emptyLabel->setText("暂无通知");
     m_emptyLabel->setAlignment(Qt::AlignCenter);
-    m_emptyLabel->setStyleSheet("QLabel { color: #94A3B8; font-size: 14px; padding: 40px 0; }");
+    m_emptyLabel->setObjectName("notificationEmpty");
     m_contentLayout->addWidget(m_emptyLabel);
 
     m_scrollArea->setWidget(m_contentWidget);

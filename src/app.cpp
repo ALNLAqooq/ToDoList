@@ -1,6 +1,7 @@
 #include "app.h"
 #include "controllers/database.h"
 #include "utils/logger.h"
+#include "utils/theme_manager.h"
 #include "views/mainwindow.h"
 #include <QApplication>
 #include <QSettings>
@@ -70,10 +71,10 @@ void App::initSettings()
 
 void App::initTheme()
 {
-    QSettings settings;
-    QString theme = settings.value("theme", "dark").toString();
+    ThemeManager &manager = ThemeManager::instance();
+    manager.applyTheme();
 
-    LOG_INFO("Theme", QString("Theme set to: %1").arg(theme));
+    LOG_INFO("Theme", QString("Theme initialized: %1").arg(manager.themeName(manager.currentTheme())));
 }
 
 void App::initWindow()

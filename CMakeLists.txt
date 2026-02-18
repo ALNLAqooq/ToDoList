@@ -76,7 +76,12 @@ set(UI_HEADERS
     src/views/notificationpanel.h
 )
 
-add_executable(ToDoList WIN32 ${SOURCES} ${UI_SOURCES})
+set(RESOURCES
+    resources/icons.qrc
+    resources/styles.qrc
+)
+
+add_executable(ToDoList WIN32 ${SOURCES} ${UI_SOURCES} ${RESOURCES})
 
 target_link_libraries(ToDoList PRIVATE Qt5::Core Qt5::Gui Qt5::Widgets Qt5::Sql Qt5::Svg)
 
@@ -92,12 +97,7 @@ if(MSVC)
     )
 endif()
 
-set(RESOURCES
-    resources/icons.qrc
-    resources/styles.qrc
-)
-
-qt5_add_resources(ToDoList "${RESOURCES}")
+# CMAKE_AUTORCC is ON, so including .qrc files in the target is enough.
 
 if(WIN32)
     set_target_properties(ToDoList PROPERTIES

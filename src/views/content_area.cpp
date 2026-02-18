@@ -5,6 +5,7 @@
 #include "../controllers/task_controller.h"
 #include "../utils/logger.h"
 #include <QMessageBox>
+#include <QRandomGenerator>
 
 ContentArea::ContentArea(QWidget *parent)
     : QWidget(parent)
@@ -35,34 +36,31 @@ ContentArea::~ContentArea()
 void ContentArea::setupUI()
 {
     m_mainLayout = new QVBoxLayout(this);
-    m_mainLayout->setContentsMargins(20, 20, 20, 20);
-    m_mainLayout->setSpacing(15);
+    m_mainLayout->setContentsMargins(12, 12, 12, 12);
+    m_mainLayout->setSpacing(10);
 
     m_groupLabel = new QLabel("所有任务", this);
-    m_groupLabel->setFixedHeight(32);
-    m_groupLabel->setStyleSheet("font-size: 24px; font-weight: bold; color: #0F172A; padding: 0;");
+    m_groupLabel->setObjectName("groupLabel");
+    m_groupLabel->setFixedHeight(28);
     m_groupLabel->setAlignment(Qt::AlignVCenter);
 
     m_tagFilterWidget = new QWidget(this);
     auto *tagLayout = new QHBoxLayout(m_tagFilterWidget);
-    tagLayout->setContentsMargins(10, 4, 10, 4);
-    tagLayout->setSpacing(8);
+    tagLayout->setContentsMargins(8, 4, 8, 4);
+    tagLayout->setSpacing(6);
 
     m_tagFilterLabel = new QLabel(this);
-    m_tagFilterLabel->setStyleSheet("font-size: 12px; color: #1F2937;");
+    m_tagFilterLabel->setObjectName("tagFilterLabel");
+    m_tagFilterLabel->setProperty("secondary", true);
 
     m_tagClearButton = new QPushButton("清除", this);
     m_tagClearButton->setFixedHeight(22);
-    m_tagClearButton->setStyleSheet(
-        "QPushButton { background: #E2E8F0; color: #334155; padding: 2px 8px; "
-        "border-radius: 10px; border: none; font-size: 12px; }"
-        "QPushButton:hover { background: #CBD5E1; }"
-    );
+    m_tagClearButton->setObjectName("tagClearButton");
     connect(m_tagClearButton, &QPushButton::clicked, this, &ContentArea::onClearTagFilter);
 
     tagLayout->addWidget(m_tagFilterLabel);
     tagLayout->addWidget(m_tagClearButton);
-    m_tagFilterWidget->setStyleSheet("background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 14px;");
+    m_tagFilterWidget->setObjectName("tagFilterWidget");
     m_tagFilterWidget->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
     m_tagFilterWidget->hide();
 
@@ -74,12 +72,12 @@ void ContentArea::setupUI()
 
     m_placeholderLabel = new QLabel("暂无任务。点击 + 按钮添加新任务。", this);
     m_placeholderLabel->setAlignment(Qt::AlignCenter);
-    m_placeholderLabel->setStyleSheet("font-size: 16px; color: #94A3B8; padding: 50px;");
+    m_placeholderLabel->setWordWrap(true);
+    m_placeholderLabel->setObjectName("contentPlaceholder");
     m_placeholderLabel->hide();
 
     m_splitter = new QSplitter(Qt::Horizontal, this);
     m_splitter->setHandleWidth(1);
-    m_splitter->setStyleSheet("QSplitter::handle { background: #E2E8F0; }");
 
     m_controller = new TaskController(this);
     m_taskTree = new TaskTree(m_controller, this);
@@ -90,6 +88,7 @@ void ContentArea::setupUI()
     connect(m_taskTree, &TaskTree::taskSelected, this, &ContentArea::onTaskSelected);
     connect(m_taskTree, &TaskTree::taskDoubleClicked, this, &ContentArea::onTaskDoubleClicked);
     connect(m_taskTree, &TaskTree::contextMenuRequested, this, &ContentArea::onContextMenuRequested);
+    connect(m_taskTree, &TaskTree::taskCountChanged, this, &ContentArea::onTaskCountChanged);
     connect(m_taskDetailWidget, &TaskDetailWidget::collapseRequested, this, &ContentArea::onDetailCollapseRequested);
     connect(m_controller, &TaskController::taskUpdated, this, &ContentArea::onTaskUpdated);
     connect(m_controller, &TaskController::taskCompletionChanged, this, &ContentArea::onTaskCompletionChanged);
@@ -102,7 +101,8 @@ void ContentArea::setupUI()
     m_splitter->setSizes({600, 400});
 
     m_mainLayout->addLayout(m_headerLayout);
-    m_mainLayout->addWidget(m_splitter);
+    m_mainLayout->addWidget(m_placeholderLabel, 1);
+    m_mainLayout->addWidget(m_splitter, 1);
 
     collapseTaskDetailPanel();
 
@@ -113,6 +113,10 @@ void ContentArea::setCurrentGroup(const QString &group)
 {
     m_currentGroup = group;
     m_groupLabel->setText(group);
+    if (m_taskTree) {
+        m_taskTree->clearSelection();
+    }
+    collapseTaskDetailPanel();
     loadTasks();
     LOG_INFO("ContentArea", QString("Current group set to: %1").arg(group));
 }
@@ -233,6 +237,11 @@ void ContentArea::onClearTagFilter()
     loadTasks();
 }
 
+void ContentArea::onTaskCountChanged(int count)
+{
+    updateEmptyState(count);
+}
+
 void ContentArea::showTaskDetailPanel()
 {
     if (!m_taskDetailWidget->isVisible()) {
@@ -243,9 +252,8 @@ void ContentArea::showTaskDetailPanel()
 
 void ContentArea::collapseTaskDetailPanel()
 {
-    if (m_taskDetailWidget->isVisible()) {
-        m_taskDetailWidget->setVisible(false);
-    }
+    m_taskDetailWidget->clearTask();
+    m_taskDetailWidget->setVisible(false);
     m_currentTaskId = 0;
     m_splitter->setSizes({1, 0});
 }
@@ -272,4 +280,42 @@ void ContentArea::updateTagFilterDisplay()
     } else {
         m_tagFilterWidget->hide();
     }
+}
+
+void ContentArea::updateEmptyState(int count)
+{
+    if (count > 0) {
+        m_placeholderLabel->hide();
+        m_splitter->show();
+        return;
+    }
+
+    bool isAllTasks = (m_currentGroup == "所有任务" && m_currentTagId <= 0);
+    if (isAllTasks) {
+        m_placeholderLabel->setText("添加你的第一个任务");
+    } else {
+        m_placeholderLabel->setText(randomEmptyMessage());
+    }
+
+    m_placeholderLabel->show();
+    m_splitter->hide();
+    collapseTaskDetailPanel();
+}
+
+QString ContentArea::randomEmptyMessage() const
+{
+    static const QStringList messages = {
+        "没有任务，休息一下吧！",
+        "今日清空，喝杯水放松下。",
+        "暂时没有事项，给自己一点空白。",
+        "列表很干净，继续保持。",
+        "没有待办，正好规划下一步。",
+        "清单为空，享受片刻宁静。",
+        "没任务了，出去走走吧。",
+        "一切已处理，辛苦啦！",
+        "当前无任务，放松一下眼睛。",
+        "没有新的安排，保持好节奏。"
+    };
+    int index = QRandomGenerator::global()->bounded(messages.size());
+    return messages.at(index);
 }

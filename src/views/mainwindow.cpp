@@ -4,6 +4,7 @@
 #include "task_dialog.h"
 #include "notificationpanel.h"
 #include "../utils/logger.h"
+#include "../utils/theme_manager.h"
 #include "../controllers/task_controller.h"
 #include "../controllers/notificationmanager.h"
 #include <QSettings>
@@ -29,6 +30,7 @@ MainWindow::MainWindow(QWidget *parent)
     , m_notificationPanel(nullptr)
     , m_quickTaskInput(nullptr)
     , m_quickAddButton(nullptr)
+    , m_themeButton(nullptr)
 {
     loadSettings();
     setupUI();
@@ -57,7 +59,6 @@ void MainWindow::setupUI()
 
     m_splitter = new QSplitter(Qt::Horizontal, this);
     m_splitter->setHandleWidth(1);
-    m_splitter->setStyleSheet("QSplitter::handle { background: #E2E8F0; }");
     m_splitter->setChildrenCollapsible(false);
 
     m_sidebar = new Sidebar(this);
@@ -103,31 +104,22 @@ void MainWindow::setupLayout()
 void MainWindow::setupBottomBar()
 {
     m_bottomBar = new QWidget(this);
-    m_bottomBar->setFixedHeight(56);
-    m_bottomBar->setStyleSheet(
-        "QWidget { background: #F8FAFC; border-top: 1px solid #E2E8F0; }"
-    );
+    m_bottomBar->setObjectName("bottomBar");
+    m_bottomBar->setFixedHeight(60);
 
     m_bottomBarLayout = new QHBoxLayout(m_bottomBar);
-    m_bottomBarLayout->setContentsMargins(16, 8, 16, 8);
-    m_bottomBarLayout->setSpacing(12);
+    m_bottomBarLayout->setContentsMargins(12, 10, 12, 10);
+    m_bottomBarLayout->setSpacing(10);
 
     m_quickTaskInput = new QLineEdit(this);
+    m_quickTaskInput->setObjectName("quickTaskInput");
+    m_quickTaskInput->setFixedHeight(40);
     m_quickTaskInput->setPlaceholderText("快速添加任务...");
-    m_quickTaskInput->setStyleSheet(
-        "QLineEdit { padding: 10px 16px; border: 1px solid #CBD5E1; border-radius: 8px; "
-        "background: white; font-size: 14px; }"
-        "QLineEdit:focus { border-color: #3B82F6; border-width: 2px; outline: none; }"
-    );
     m_bottomBarLayout->addWidget(m_quickTaskInput);
 
     m_quickAddButton = new QPushButton("添加", this);
-    m_quickAddButton->setStyleSheet(
-        "QPushButton { background: #3B82F6; color: white; padding: 10px 24px; "
-        "border-radius: 8px; border: none; font-weight: 500; font-size: 14px; }"
-        "QPushButton:hover { background: #2563EB; }"
-        "QPushButton:pressed { background: #1D4ED8; }"
-    );
+    m_quickAddButton->setObjectName("quickAddButton");
+    m_quickAddButton->setFixedHeight(40);
     connect(m_quickAddButton, &QPushButton::clicked, this, [this]() {
         QString title = m_quickTaskInput->text().trimmed();
         if (!title.isEmpty()) {
@@ -150,69 +142,53 @@ void MainWindow::setupBottomBar()
 void MainWindow::setupToolbar()
 {
     m_toolbar = addToolBar("Main Toolbar");
+    m_toolbar->setObjectName("mainToolbar");
     m_toolbar->setMovable(false);
-    m_toolbar->setFixedHeight(64);
-    m_toolbar->setStyleSheet(
-        "QToolBar { background: #FFFFFF; border-bottom: 1px solid #E2E8F0; "
-        "spacing: 12px; padding: 0 16px; }"
-    );
+    m_toolbar->setFixedHeight(56);
 
     m_searchBox = new QLineEdit(this);
+    m_searchBox->setObjectName("toolbarSearch");
     m_searchBox->setPlaceholderText("搜索任务...");
-    m_searchBox->setMinimumWidth(280);
-    m_searchBox->setMaximumWidth(400);
-    m_searchBox->setFixedHeight(40);
-    m_searchBox->setStyleSheet(
-        "QLineEdit { padding: 10px 16px; border: 1px solid #E2E8F0; border-radius: 8px; "
-        "background: #F8FAFC; font-size: 14px; color: #64748B; }"
-        "QLineEdit:focus { border-color: #2563EB; border-width: 2px; outline: none; "
-        "background: #FFFFFF; color: #0F172A; }"
-        "QLineEdit:hover { border-color: #CBD5E1; }"
-    );
+    m_searchBox->setMinimumWidth(240);
+    m_searchBox->setMaximumWidth(360);
+    m_searchBox->setFixedHeight(36);
     connect(m_searchBox, &QLineEdit::textChanged, this, &MainWindow::onSearchTextChanged);
     m_toolbar->addWidget(m_searchBox);
 
     QWidget *spacer = new QWidget(this);
+    spacer->setObjectName("toolbarSpacer");
+    spacer->setAttribute(Qt::WA_StyledBackground, true);
     spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
     m_toolbar->addWidget(spacer);
 
     m_newTaskButton = new QPushButton("新建任务", this);
-    m_newTaskButton->setFixedHeight(40);
-    m_newTaskButton->setStyleSheet(
-        "QPushButton { background: #2563EB; color: white; padding: 0 24px; "
-        "border-radius: 8px; border: none; font-weight: 600; font-size: 14px; }"
-        "QPushButton:hover { background: #1D4ED8; }"
-        "QPushButton:pressed { background: #1E40AF; }"
-    );
+    m_newTaskButton->setObjectName("primaryActionButton");
+    m_newTaskButton->setFixedHeight(36);
     connect(m_newTaskButton, &QPushButton::clicked, this, &MainWindow::onNewTaskClicked);
     m_toolbar->addWidget(m_newTaskButton);
 
     m_collapseButton = new QPushButton(this);
-    m_collapseButton->setFixedSize(40, 40);
+    m_collapseButton->setFixedSize(36, 36);
     m_collapseButton->setText("◀");
-    m_collapseButton->setStyleSheet(
-        "QPushButton { background: transparent; border: 1px solid transparent; "
-        "border-radius: 8px; color: #64748B; font-size: 16px; }"
-        "QPushButton:hover { background: #F1F5F9; border-color: #E2E8F0; "
-        "color: #0F172A; }"
-        "QPushButton:pressed { background: #E2E8F0; }"
-    );
+    m_collapseButton->setProperty("iconButton", true);
     connect(m_collapseButton, &QPushButton::clicked, this, &MainWindow::onCollapseRequested);
     m_toolbar->addWidget(m_collapseButton);
 
     m_notificationButton = new QToolButton(this);
-    m_notificationButton->setFixedSize(40, 40);
+    m_notificationButton->setFixedSize(36, 36);
     m_notificationButton->setText("🔔");
-    m_notificationButton->setStyleSheet(
-        "QToolButton { background: transparent; border: 1px solid transparent; "
-        "border-radius: 8px; color: #64748B; font-size: 18px; }"
-        "QToolButton:hover { background: #F1F5F9; border-color: #E2E8F0; "
-        "color: #0F172A; }"
-        "QToolButton:pressed { background: #E2E8F0; }"
-    );
+    m_notificationButton->setProperty("iconButton", true);
     m_notificationButton->setPopupMode(QToolButton::InstantPopup);
     connect(m_notificationButton, &QToolButton::clicked, this, &MainWindow::onNotificationClicked);
     m_toolbar->addWidget(m_notificationButton);
+
+    m_themeButton = new QPushButton(this);
+    m_themeButton->setFixedSize(36, 36);
+    m_themeButton->setText("🌙");
+    m_themeButton->setToolTip("切换主题");
+    m_themeButton->setProperty("iconButton", true);
+    connect(m_themeButton, &QPushButton::clicked, this, &MainWindow::onThemeToggleClicked);
+    m_toolbar->addWidget(m_themeButton);
 
     LOG_INFO("MainWindow", "Main window toolbar setup complete");
 }
@@ -333,7 +309,8 @@ void MainWindow::onNotificationClicked()
     }
 
     QPoint globalPos = m_notificationButton->mapToGlobal(QPoint(0, m_notificationButton->height()));
-    m_notificationPanel->move(globalPos.x() - 340, globalPos.y());
+    int panelX = globalPos.x() + m_notificationButton->width() - m_notificationPanel->width();
+    m_notificationPanel->move(panelX, globalPos.y());
     m_notificationPanel->show();
     m_notificationPanel->raise();
     m_notificationPanel->activateWindow();
@@ -358,4 +335,15 @@ void MainWindow::onNotificationPanelClose()
         m_notificationPanel->hide();
         LOG_INFO("MainWindow", "Notification panel closed");
     }
+}
+
+void MainWindow::onThemeToggleClicked()
+{
+    ThemeManager &manager = ThemeManager::instance();
+    manager.toggleTheme();
+
+    ThemeManager::Theme theme = manager.currentTheme();
+    m_themeButton->setText(theme == ThemeManager::Light ? "🌙" : "☀️");
+
+    LOG_INFO("MainWindow", QString("Theme toggled to: %1").arg(manager.themeName(theme)));
 }

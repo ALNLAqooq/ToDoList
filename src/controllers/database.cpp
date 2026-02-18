@@ -513,6 +513,30 @@ bool Database::updateTask(const Task &task)
 
 bool Database::deleteTask(int id)
 {
+    int parentId = 0;
+    {
+        QSqlQuery parentQuery(m_database);
+        parentQuery.prepare("SELECT parent_id FROM tasks WHERE id = ? AND is_deleted = 0");
+        parentQuery.addBindValue(id);
+        if (parentQuery.exec() && parentQuery.next()) {
+            parentId = parentQuery.value(0).toInt();
+            if (parentId < 0) {
+                parentId = 0;
+            }
+        }
+    }
+
+    {
+        QSqlQuery reparentQuery(m_database);
+        reparentQuery.prepare("UPDATE tasks SET parent_id = ?, updated_at = ? WHERE parent_id = ? AND is_deleted = 0");
+        reparentQuery.addBindValue(parentId);
+        reparentQuery.addBindValue(QDateTime::currentDateTime().toString(Qt::ISODate));
+        reparentQuery.addBindValue(id);
+        if (!reparentQuery.exec()) {
+            return false;
+        }
+    }
+
     QSqlQuery query(m_database);
     query.prepare("UPDATE tasks SET is_deleted = 1, deleted_at = ? WHERE id = ?");
     query.addBindValue(QDateTime::currentDateTime().toString(Qt::ISODate));
