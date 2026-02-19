@@ -7,6 +7,7 @@
 #include <QDebug>
 #include <QBitmap>
 #include <QtSvg>
+#include <QRegularExpression>
 
 QMap<QString, QIcon> IconUtils::m_iconCache;
 QMap<QString, QPixmap> IconUtils::m_pixmapCache;

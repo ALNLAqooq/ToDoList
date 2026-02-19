@@ -166,14 +166,14 @@
 
 ## 17. Data Import/Export
 
-- [ ] 17.1 Implement JSON export with all data
-- [ ] 17.2 Add export options (selective export)
-- [ ] 17.3 Implement SQLite export (full database copy)
-- [ ] 17.4 Implement JSON import with validation
-- [ ] 17.5 Implement SQLite import with overwrite warning
-- [ ] 17.6 Add import modes (merge, overwrite, append)
-- [ ] 17.7 Implement conflict resolution (skip, overwrite, regenerate IDs)
-- [ ] 17.8 Add export/import progress indication
+- [x] 17.1 Implement JSON export with all data
+- [x] 17.2 Add export options (selective export)
+- [x] 17.3 Implement SQLite export (full database copy)
+- [x] 17.4 Implement JSON import with validation
+- [x] 17.5 Implement SQLite import with overwrite warning
+- [x] 17.6 Add import modes (merge, overwrite, append)
+- [x] 17.7 Implement conflict resolution (skip, overwrite, regenerate IDs)
+- [x] 17.8 Add export/import progress indication
 
 ## 18. Utility Classes
 
@@ -186,18 +186,18 @@
 
 - [x] 19.1 Create indexes for tasks table (parent_id, deadline, priority, is_deleted)
 - [x] 19.2 Create indexes for performance optimization
-- [x] 19.3 Implement database VACUUM for maintenance
-- [x] 19.4 Add periodic maintenance task (cleanup old notifications, deleted tasks)
+- [x] 19.3 Implement database VACUUM for maintenance (weekly)
+- [x] 19.4 Add periodic maintenance task (cleanup old notifications, deleted tasks, scheduled)
 
 ## 20. Empty States and Error Handling
 
-- [ ] 20.1 Create empty state widgets for no tasks
-- [ ] 20.2 Create empty state for search no results
-- [ ] 20.3 Create empty state for recycle bin
-- [ ] 20.4 Add error dialogs for database corruption
-- [ ] 20.5 Add error dialogs for file operations
-- [ ] 20.6 Add error dialogs for save failures
-- [ ] 20.7 Add error dialogs for import/export failures
+- [x] 20.1 Create empty state widgets for no tasks
+- [x] 20.2 Create empty state for search no results
+- [x] 20.3 Create empty state for recycle bin
+- [x] 20.4 Add error dialogs for database corruption
+- [x] 20.5 Add error dialogs for file operations
+- [x] 20.6 Add error dialogs for save failures
+- [x] 20.7 Add error dialogs for import/export failures
 
 ## 21. Final Polish and Testing
 

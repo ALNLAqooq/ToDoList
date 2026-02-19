@@ -6,6 +6,7 @@
 #include <QSize>
 #include <QString>
 #include <QMap>
+#include <QStringList>
 
 class IconUtils
 {

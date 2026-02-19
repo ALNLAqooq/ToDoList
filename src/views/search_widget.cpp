@@ -182,23 +182,7 @@ void SearchWidget::setSelectedTags(const QList<int> &tagIds, bool emitSignal)
     }
 }
 
-void SearchWidget::onSearchTextChanged(const QString &text)
-{
-    Q_UNUSED(text);
-    emitFiltersChanged();
-}
-
-void SearchWidget::onToggleFilters()
-{
-    if (!m_filterPanel) {
-        return;
-    }
-    bool visible = m_filterPanel->isVisible();
-    m_filterPanel->setVisible(!visible);
-    m_filterToggleButton->setText(visible ? "筛选" : "收起筛选");
-}
-
-void SearchWidget::onClearFilters()
+void SearchWidget::clearFilters()
 {
     if (m_searchEdit) {
         m_searchEdit->clear();
@@ -217,6 +201,27 @@ void SearchWidget::onClearFilters()
     }
     setSelectedTags(QList<int>(), false);
     emitFiltersChanged();
+}
+
+void SearchWidget::onSearchTextChanged(const QString &text)
+{
+    Q_UNUSED(text);
+    emitFiltersChanged();
+}
+
+void SearchWidget::onToggleFilters()
+{
+    if (!m_filterPanel) {
+        return;
+    }
+    bool visible = m_filterPanel->isVisible();
+    m_filterPanel->setVisible(!visible);
+    m_filterToggleButton->setText(visible ? "筛选" : "收起筛选");
+}
+
+void SearchWidget::onClearFilters()
+{
+    clearFilters();
 }
 
 void SearchWidget::onFilterControlChanged()

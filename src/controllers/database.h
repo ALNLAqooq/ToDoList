@@ -20,6 +20,8 @@ public:
 
     bool open();
     void close();
+    QString lastError() const;
+    bool isCorrupted() const;
 
     bool createTables();
     bool createIndexes();
@@ -42,6 +44,7 @@ public:
     bool restoreTask(int id);
     bool permanentlyDeleteTask(int id, int parentAction = -1);
     int cleanupDeletedTasks(int days);
+    int cleanupOldNotifications(int days);
     double calculateProgress(int taskId);
     double calculateParentProgress(int taskId);
 
@@ -98,6 +101,8 @@ private:
 
     QSqlDatabase m_database;
     QString m_databasePath;
+    QString m_lastError;
+    bool m_isCorrupted;
 };
 
 #endif // DATABASE_H

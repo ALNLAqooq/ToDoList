@@ -16,6 +16,7 @@
 #include <QTimer>
 #include <QSize>
 #include <QProgressDialog>
+#include <QMessageBox>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -141,7 +142,10 @@ void MainWindow::setupBottomBar()
             TaskController controller;
             Task newTask;
             newTask.setTitle(title);
-            controller.addTask(newTask);
+            if (!controller.addTask(newTask)) {
+                QMessageBox::critical(this, "保存失败", "快速添加任务失败。");
+                return;
+            }
             m_quickTaskInput->clear();
             refreshTaskList();
             LOG_INFO("MainWindow", QString("Quick task added: %1").arg(title));
@@ -397,6 +401,12 @@ void MainWindow::onSettingsClicked()
 {
     if (!m_settingsDialog) {
         m_settingsDialog = new SettingsDialog(m_backupManager, this);
+        connect(m_settingsDialog, &SettingsDialog::dataImported, this, [this]() {
+            refreshTaskList();
+            if (m_sidebar) {
+                m_sidebar->refreshTags();
+            }
+        });
     }
     m_settingsDialog->show();
     m_settingsDialog->raise();

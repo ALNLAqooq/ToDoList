@@ -5,6 +5,7 @@
 #include <QTemporaryDir>
 #include <QDebug>
 #include <QCoreApplication>
+#include <QMap>
 
 bool FileUtils::exists(const QString &path)
 {
@@ -247,10 +248,9 @@ QString FileUtils::tempDirectory()
 
 QString FileUtils::tempFilePath(const QString &prefix)
 {
-    if (prefix.isEmpty()) {
-        return QDir::temp().absoluteFilePath("tmp");
-    }
-    return QDir::temp().absoluteFilePath(prefix + "XXXXXX");
+    QString basePath = QDir::tempPath();
+    QString fileName = prefix.isEmpty() ? "tmp" : prefix + "XXXXXX";
+    return QDir(basePath).absoluteFilePath(fileName);
 }
 
 QString FileUtils::getAppDataDirectory(const QString &appName)

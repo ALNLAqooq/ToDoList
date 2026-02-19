@@ -22,6 +22,9 @@ class SettingsDialog : public QDialog
 public:
     explicit SettingsDialog(BackupManager *backupManager, QWidget *parent = nullptr);
 
+signals:
+    void dataImported();
+
 private slots:
     void onBrowseBackupLocation();
     void onManualBackup();
@@ -49,9 +52,9 @@ private:
     QWidget *buildAboutTab();
 
     void loadSettings();
-    void applySettings();
+    bool applySettings();
     QString getSetting(const QString &key, const QString &defaultValue) const;
-    void setSetting(const QString &key, const QString &value);
+    bool setSetting(const QString &key, const QString &value);
 
     BackupManager *m_backupManager;
     Database *m_database;

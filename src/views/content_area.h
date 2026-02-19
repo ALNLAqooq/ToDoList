@@ -17,6 +17,7 @@ class TaskTree;
 class TaskController;
 class TaskDetailWidget;
 class SearchWidget;
+class EmptyStateWidget;
 
 class ContentArea : public QWidget
 {
@@ -56,7 +57,6 @@ private:
     void updateDetailForTask(int taskId);
     void updateTagFilterDisplay();
     void updateEmptyState(int count);
-    QString randomEmptyMessage() const;
 
     QVBoxLayout *m_mainLayout;
     QHBoxLayout *m_headerLayout;
@@ -65,7 +65,7 @@ private:
     QLabel *m_tagFilterLabel;
     QPushButton *m_tagClearButton;
     SearchWidget *m_searchWidget;
-    QLabel *m_placeholderLabel;
+    EmptyStateWidget *m_emptyStateWidget;
     QSplitter *m_splitter;
     TaskTree *m_taskTree;
     TaskDetailWidget *m_taskDetailWidget;

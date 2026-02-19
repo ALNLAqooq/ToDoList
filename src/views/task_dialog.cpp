@@ -568,9 +568,9 @@ void TaskDialog::loadTasksForDependency()
     }
 
     for (int depId : m_selectedDependencyIds) {
-        QString title = taskTitles.value(depId, QString("Task %1").arg(depId));
+    QString title = taskTitles.value(depId, QString("任务 %1").arg(depId));
         if (circularIds.contains(depId)) {
-            title += " (circular)";
+        title += "（循环）";
         }
         m_dependencyList->addItem(title);
     }
@@ -592,8 +592,8 @@ void TaskDialog::loadFileList()
 
         if (!fileInfo.exists()) {
             item->setForeground(QColor("#DC2626"));
-            item->setText(fileName + " (missing)");
-            item->setToolTip(QString("Missing file:\n%1").arg(filePath));
+        item->setText(fileName + "（缺失）");
+        item->setToolTip(QString("缺失文件：\n%1").arg(filePath));
         } else {
             QString typeLabel = FileUtils::getFileType(filePath);
             QString sizeLabel = FileUtils::fileSizeFormatted(fileInfo.size());
@@ -669,12 +669,12 @@ void TaskDialog::onSaveClicked()
     if (!missingFiles.isEmpty()) {
         QMessageBox dialog(this);
         dialog.setIcon(QMessageBox::Warning);
-        dialog.setWindowTitle("Missing Files");
-        dialog.setText("Some attached files are missing.");
+        dialog.setWindowTitle("文件缺失");
+        dialog.setText("部分附件已丢失。");
         dialog.setInformativeText(missingFiles.join("\n"));
-        QPushButton *keepButton = dialog.addButton("Keep", QMessageBox::AcceptRole);
-        QPushButton *removeButton = dialog.addButton("Remove Missing", QMessageBox::DestructiveRole);
-        QPushButton *cancelButton = dialog.addButton("Cancel", QMessageBox::RejectRole);
+        QPushButton *keepButton = dialog.addButton("保留", QMessageBox::AcceptRole);
+        QPushButton *removeButton = dialog.addButton("移除缺失项", QMessageBox::DestructiveRole);
+        QPushButton *cancelButton = dialog.addButton("取消", QMessageBox::RejectRole);
         dialog.setDefaultButton(keepButton);
         dialog.exec();
 
@@ -774,11 +774,11 @@ void TaskDialog::onCancelClicked()
 
 void TaskDialog::onBrowseFileClicked()
 {
-    QString filePath = QFileDialog::getOpenFileName(this, "Select File", "", "All Files (*)");
+    QString filePath = QFileDialog::getOpenFileName(this, "选择文件", "", "所有文件 (*)");
     if (!filePath.isEmpty()) {
         QString normalizedPath = FileUtils::normalizePath(filePath);
         if (!FileUtils::exists(normalizedPath) || !FileUtils::isFile(normalizedPath)) {
-            QMessageBox::warning(this, "Warning", "The selected file does not exist.");
+            QMessageBox::warning(this, "警告", "所选文件不存在。");
             return;
         }
 
@@ -786,7 +786,7 @@ void TaskDialog::onBrowseFileClicked()
             m_filePaths.append(normalizedPath);
             loadFileList();
         } else {
-            QMessageBox::warning(this, "Warning", "File already added.");
+            QMessageBox::warning(this, "警告", "文件已添加。");
         }
     }
 }
@@ -813,9 +813,11 @@ void TaskDialog::onOpenFileClicked()
         QString filePath = item->data(Qt::UserRole).toString();
         QFileInfo fileInfo(filePath);
         if (fileInfo.exists()) {
-            QDesktopServices::openUrl(QUrl::fromLocalFile(filePath));
+            if (!QDesktopServices::openUrl(QUrl::fromLocalFile(filePath))) {
+                QMessageBox::warning(this, "错误", "无法打开文件: " + filePath);
+            }
         } else {
-            QMessageBox::warning(this, "Warning", "File not found: " + filePath);
+            QMessageBox::warning(this, "警告", "文件不存在: " + filePath);
         }
     }
 }
@@ -906,7 +908,7 @@ void TaskDialog::onAddDependencyClicked()
     }
 
     if (m_taskId > 0 && m_controller->wouldCreateCircularDependency(m_taskId, depId)) {
-        QMessageBox::warning(this, "Warning", "Dependency would create a circular reference.");
+        QMessageBox::warning(this, "警告", "依赖会造成循环引用。");
         return;
     }
 

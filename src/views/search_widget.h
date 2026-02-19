@@ -23,6 +23,7 @@ public:
     TaskSearchFilters filters() const;
     void setSearchText(const QString &text);
     void setSelectedTags(const QList<int> &tagIds, bool emitSignal = true);
+    void clearFilters();
 
 signals:
     void filtersChanged(const TaskSearchFilters &filters);

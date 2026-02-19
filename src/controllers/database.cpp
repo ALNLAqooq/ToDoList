@@ -70,6 +70,7 @@ Database& Database::instance()
 Database::Database()
 {
     m_databasePath = QDir::currentPath() + "/data/todolist.db";
+    m_isCorrupted = false;
 }
 
 Database::~Database()
@@ -81,6 +82,9 @@ Database::~Database()
 
 bool Database::open()
 {
+    m_lastError.clear();
+    m_isCorrupted = false;
+
     QDir dataDir(QDir::currentPath() + "/data");
     if (!dataDir.exists()) {
         dataDir.mkpath(".");
@@ -90,8 +94,25 @@ bool Database::open()
     m_database.setDatabaseName(m_databasePath);
 
     if (!m_database.open()) {
-        qDebug() << "Database error:" << m_database.lastError().text();
+        m_lastError = m_database.lastError().text();
+        qDebug() << "Database error:" << m_lastError;
         return false;
+    }
+
+    QSqlQuery integrityQuery(m_database);
+    if (!integrityQuery.exec("PRAGMA integrity_check")) {
+        m_lastError = integrityQuery.lastError().text();
+        qDebug() << "Database integrity check failed:" << m_lastError;
+        return false;
+    }
+    if (integrityQuery.next()) {
+        const QString result = integrityQuery.value(0).toString();
+        if (result.compare("ok", Qt::CaseInsensitive) != 0) {
+            m_isCorrupted = true;
+            m_lastError = QString("Integrity check failed: %1").arg(result);
+            qDebug() << "Database integrity check failed:" << m_lastError;
+            return false;
+        }
     }
 
     if (!createTables()) {
@@ -119,6 +140,16 @@ void Database::close()
 QSqlDatabase& Database::database()
 {
     return m_database;
+}
+
+QString Database::lastError() const
+{
+    return m_lastError;
+}
+
+bool Database::isCorrupted() const
+{
+    return m_isCorrupted;
 }
 
 bool Database::createTables()
@@ -257,12 +288,14 @@ bool Database::createTables()
 
     for (const QString &tableSql : tables) {
         if (!query.exec(tableSql)) {
-            qDebug() << "Failed to create table:" << query.lastError().text();
+            m_lastError = query.lastError().text();
+            qDebug() << "Failed to create table:" << m_lastError;
             return false;
         }
     }
 
     if (!ensureTasksFilePathColumn(m_database)) {
+        m_lastError = "Failed to ensure tasks file_path column";
         return false;
     }
 
@@ -281,6 +314,8 @@ bool Database::createIndexes()
         "CREATE INDEX IF NOT EXISTS idx_tasks_completed ON tasks(completed)",
         "CREATE INDEX IF NOT EXISTS idx_tasks_created_at ON tasks(created_at)",
         "CREATE INDEX IF NOT EXISTS idx_task_steps_task_id ON task_steps(task_id)",
+        "CREATE INDEX IF NOT EXISTS idx_task_files_task_id ON task_files(task_id)",
+        "CREATE INDEX IF NOT EXISTS idx_task_dependencies_depends_on_id ON task_dependencies(depends_on_id)",
         "CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(read)",
         "CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at)",
         "CREATE INDEX IF NOT EXISTS idx_task_tags_tag_id ON task_tags(tag_id)",
@@ -318,7 +353,8 @@ bool Database::createFTS5Table()
     )";
 
     if (!query.exec(ftsTable)) {
-        qDebug() << "Failed to create FTS5 table:" << query.lastError().text();
+        m_lastError = query.lastError().text();
+        qDebug() << "Failed to create FTS5 table:" << m_lastError;
         return false;
     }
 
@@ -812,6 +848,32 @@ int Database::cleanupDeletedTasks(int days)
     }
 
     return deletedCount;
+}
+
+int Database::cleanupOldNotifications(int days)
+{
+    if (days <= 0) {
+        return 0;
+    }
+
+    QString threshold = QDateTime::currentDateTime().addDays(-days).toString(Qt::ISODate);
+    QSqlQuery query(m_database);
+    query.prepare("DELETE FROM notifications WHERE created_at <= ? AND read = 1");
+    query.addBindValue(threshold);
+
+    if (!query.exec()) {
+        return 0;
+    }
+
+    int affected = query.numRowsAffected();
+    if (affected < 0) {
+        QSqlQuery changes(m_database);
+        if (changes.exec("SELECT changes()") && changes.next()) {
+            affected = changes.value(0).toInt();
+        }
+    }
+
+    return affected < 0 ? 0 : affected;
 }
 
 double Database::calculateProgress(int taskId)

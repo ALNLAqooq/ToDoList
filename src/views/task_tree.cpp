@@ -210,7 +210,7 @@ void TaskTree::setupUI()
     m_treeView->setContextMenuPolicy(Qt::CustomContextMenu);
     
     m_treeModel = new QStandardItemModel(this);
-    m_treeModel->setHorizontalHeaderLabels(QStringList() << "Tasks");
+    m_treeModel->setHorizontalHeaderLabels(QStringList() << "任务");
     
     m_treeView->setModel(m_treeModel);
     m_treeView->setHeaderHidden(true);
@@ -248,7 +248,7 @@ void TaskTree::setupContextMenu()
 {
     m_contextMenu = new QMenu(this);
     
-    m_expandAction = new QAction("Expand", this);
+    m_expandAction = new QAction("展开", this);
     connect(m_expandAction, &QAction::triggered, this, [this]() {
         QModelIndex index = m_treeView->currentIndex();
         if (index.isValid()) {
@@ -256,7 +256,7 @@ void TaskTree::setupContextMenu()
         }
     });
     
-    m_collapseAction = new QAction("Collapse", this);
+    m_collapseAction = new QAction("折叠", this);
     connect(m_collapseAction, &QAction::triggered, this, [this]() {
         QModelIndex index = m_treeView->currentIndex();
         if (index.isValid()) {
@@ -264,7 +264,7 @@ void TaskTree::setupContextMenu()
         }
     });
     
-    m_addSubtaskAction = new QAction("Add Subtask", this);
+    m_addSubtaskAction = new QAction("添加子任务", this);
     connect(m_addSubtaskAction, &QAction::triggered, this, [this]() {
         QModelIndex index = m_treeView->currentIndex();
         if (index.isValid()) {
@@ -275,7 +275,7 @@ void TaskTree::setupContextMenu()
         }
     });
     
-    m_editAction = new QAction("Edit", this);
+    m_editAction = new QAction("编辑", this);
     connect(m_editAction, &QAction::triggered, this, [this]() {
         QModelIndex index = m_treeView->currentIndex();
         if (index.isValid()) {
@@ -286,15 +286,15 @@ void TaskTree::setupContextMenu()
         }
     });
     
-    m_deleteAction = new QAction("Delete", this);
+    m_deleteAction = new QAction("删除", this);
     connect(m_deleteAction, &QAction::triggered, this, [this]() {
         QModelIndex index = m_treeView->currentIndex();
         if (index.isValid()) {
             Task task = getTaskFromIndex(index);
             if (task.id() > 0) {
                 QMessageBox::StandardButton reply = QMessageBox::question(
-                    this, "Confirm Delete",
-                    "Are you sure you want to delete this task?",
+                    this, "确认删除",
+                    "确定要删除这个任务吗？",
                     QMessageBox::Yes | QMessageBox::No);
                 if (reply == QMessageBox::Yes) {
                     m_controller->deleteTask(task.id());
@@ -303,7 +303,7 @@ void TaskTree::setupContextMenu()
         }
     });
     
-    m_completeAction = new QAction("Mark Complete", this);
+    m_completeAction = new QAction("标记完成", this);
     connect(m_completeAction, &QAction::triggered, this, [this]() {
         QModelIndex index = m_treeView->currentIndex();
         if (index.isValid()) {
@@ -352,7 +352,7 @@ void TaskTree::loadChildTasks(int parentId, QStandardItem *parentItem)
     
     for (int i = parentItem->rowCount() - 1; i >= 0; --i) {
         QStandardItem *child = parentItem->child(i);
-        if (child->text() == "Loading...") {
+            if (child->text() == "加载中...") {
             parentItem->removeRow(i);
         }
     }
@@ -368,7 +368,7 @@ void TaskTree::loadChildTasks(int parentId, QStandardItem *parentItem)
 void TaskTree::loadAllTasks()
 {
     m_treeModel->clear();
-    m_treeModel->setHorizontalHeaderLabels(QStringList() << "Tasks");
+        m_treeModel->setHorizontalHeaderLabels(QStringList() << "任务");
     m_tasksCache.clear();
     
     QList<Task> allTasks = m_controller->getTaskHierarchy(0);
@@ -399,7 +399,7 @@ void TaskTree::loadAllTasks()
 void TaskTree::loadFilteredTasks(const QString &group, int tagId, const TaskSearchFilters &filters)
 {
     m_treeModel->clear();
-    m_treeModel->setHorizontalHeaderLabels(QStringList() << "Tasks");
+        m_treeModel->setHorizontalHeaderLabels(QStringList() << "任务");
     m_tasksCache.clear();
     
     QList<Task> tasks;
@@ -616,9 +616,9 @@ void TaskTree::loadFilteredTasks(const QString &group, int tagId, const TaskSear
         }
         if (tooltipOut) {
             if (timeStr.isEmpty()) {
-                *tooltipOut = QString("????? %1").arg(parentTask.title());
+                *tooltipOut = QString("父任务：%1").arg(parentTask.title());
             } else {
-                *tooltipOut = QString("????? %1\n??????: %2").arg(parentTask.title(), timeStr);
+                *tooltipOut = QString("父任务：%1\n创建时间：%2").arg(parentTask.title(), timeStr);
             }
         }
         if (timeStr.isEmpty()) {
@@ -882,7 +882,7 @@ void TaskTree::onExpandItem(const QModelIndex &index)
         return;
     }
     
-    if (item->rowCount() == 1 && item->child(0)->text() == "Loading...") {
+    if (item->rowCount() == 1 && item->child(0)->text() == "加载中...") {
     int taskId = item->data(RoleTaskId).toInt();
         loadChildTasks(taskId, item);
     }

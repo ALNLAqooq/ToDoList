@@ -57,6 +57,7 @@ set(UI_SOURCES
     src/views/mainwindow.cpp
     src/views/sidebar.cpp
     src/views/content_area.cpp
+    src/views/empty_state_widget.cpp
     src/views/search_widget.cpp
     src/views/settingsdialog.cpp
     src/views/task_list_widget.cpp
@@ -71,6 +72,7 @@ set(UI_HEADERS
     src/views/mainwindow.h
     src/views/sidebar.h
     src/views/content_area.h
+    src/views/empty_state_widget.h
     src/views/search_widget.h
     src/views/settingsdialog.h
     src/views/task_list_widget.h

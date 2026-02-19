@@ -1,5 +1,6 @@
 #include "date_utils.h"
 #include <QDebug>
+#include <QObject>
 
 QString DateUtils::formatDateTime(const QDateTime &dateTime)
 {

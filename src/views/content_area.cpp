@@ -3,10 +3,10 @@
 #include "task_detail_widget.h"
 #include "task_dialog.h"
 #include "search_widget.h"
+#include "empty_state_widget.h"
 #include "../controllers/task_controller.h"
 #include "../utils/logger.h"
 #include <QMessageBox>
-#include <QRandomGenerator>
 
 ContentArea::ContentArea(QWidget *parent)
     : QWidget(parent)
@@ -17,7 +17,7 @@ ContentArea::ContentArea(QWidget *parent)
     , m_tagFilterLabel(nullptr)
     , m_tagClearButton(nullptr)
     , m_searchWidget(nullptr)
-    , m_placeholderLabel(nullptr)
+    , m_emptyStateWidget(nullptr)
     , m_splitter(nullptr)
     , m_taskTree(nullptr)
     , m_taskDetailWidget(nullptr)
@@ -77,11 +77,13 @@ void ContentArea::setupUI()
     m_searchWidget = new SearchWidget(m_controller, this);
     connect(m_searchWidget, &SearchWidget::filtersChanged, this, &ContentArea::onSearchFiltersChanged);
 
-    m_placeholderLabel = new QLabel("暂无任务。点击 + 按钮添加新任务。", this);
-    m_placeholderLabel->setAlignment(Qt::AlignCenter);
-    m_placeholderLabel->setWordWrap(true);
-    m_placeholderLabel->setObjectName("contentPlaceholder");
-    m_placeholderLabel->hide();
+    m_emptyStateWidget = new EmptyStateWidget(this);
+    connect(m_emptyStateWidget, &EmptyStateWidget::actionTriggered, this, [this]() {
+        if (m_searchWidget) {
+            m_searchWidget->clearFilters();
+        }
+    });
+    m_emptyStateWidget->hide();
 
     m_splitter = new QSplitter(Qt::Horizontal, this);
     m_splitter->setHandleWidth(1);
@@ -108,7 +110,7 @@ void ContentArea::setupUI()
 
     m_mainLayout->addLayout(m_headerLayout);
     m_mainLayout->addWidget(m_searchWidget);
-    m_mainLayout->addWidget(m_placeholderLabel, 1);
+    m_mainLayout->addWidget(m_emptyStateWidget, 1);
     m_mainLayout->addWidget(m_splitter, 1);
 
     collapseTaskDetailPanel();
@@ -345,38 +347,45 @@ void ContentArea::updateTagFilterDisplay()
 
 void ContentArea::updateEmptyState(int count)
 {
+    if (!m_emptyStateWidget || !m_splitter) {
+        return;
+    }
+
     if (count > 0) {
-        m_placeholderLabel->hide();
+        m_emptyStateWidget->hide();
         m_splitter->show();
         return;
     }
 
-    bool isAllTasks = (m_currentGroup == "所有任务" && m_currentTagId <= 0);
-    if (isAllTasks) {
-        m_placeholderLabel->setText("添加你的第一个任务");
+    const bool isRecycleBin = (m_currentGroup == "回收站");
+    const bool isAllTasks = (m_currentGroup == "所有任务" && m_currentTagId <= 0);
+    const bool hasFilters = m_searchFilters.hasActiveFilters() || m_currentTagId > 0;
+
+    QString title;
+    QString description;
+    bool showClearAction = false;
+
+    if (isRecycleBin) {
+        title = "回收站为空";
+        description = "删除的任务会显示在这里。";
+    } else if (hasFilters) {
+        title = "没有找到匹配的任务";
+        description = "尝试调整关键字或清除筛选条件。";
+        showClearAction = true;
+    } else if (isAllTasks) {
+        title = "还没有任务";
+        description = "点击右上角“新建任务”开始记录。";
     } else {
-        m_placeholderLabel->setText(randomEmptyMessage());
+        title = QString("%1暂无任务").arg(m_currentGroup);
+        description = "当前分组没有任务。";
     }
 
-    m_placeholderLabel->show();
+    m_emptyStateWidget->setTitle(title);
+    m_emptyStateWidget->setDescription(description);
+    m_emptyStateWidget->setActionText("清除筛选");
+    m_emptyStateWidget->setActionVisible(showClearAction && m_searchWidget);
+
+    m_emptyStateWidget->show();
     m_splitter->hide();
     collapseTaskDetailPanel();
-}
-
-QString ContentArea::randomEmptyMessage() const
-{
-    static const QStringList messages = {
-        "没有任务，休息一下吧！",
-        "今日清空，喝杯水放松下。",
-        "暂时没有事项，给自己一点空白。",
-        "列表很干净，继续保持。",
-        "没有待办，正好规划下一步。",
-        "清单为空，享受片刻宁静。",
-        "没任务了，出去走走吧。",
-        "一切已处理，辛苦啦！",
-        "当前无任务，放松一下眼睛。",
-        "没有新的安排，保持好节奏。"
-    };
-    int index = QRandomGenerator::global()->bounded(messages.size());
-    return messages.at(index);
 }

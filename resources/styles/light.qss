@@ -714,6 +714,29 @@ QToolButton[iconButton="true"]:pressed {
     padding: 40px;
 }
 
+#emptyStateTitle {
+    color: #0F172A;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+#emptyStateDescription {
+    color: #64748B;
+    font-size: 14px;
+}
+
+#emptyStateAction {
+    background-color: #F8FAFC;
+    color: #0F172A;
+    border: 1px solid #CBD5E1;
+    padding: 6px 16px;
+    border-radius: 16px;
+}
+
+#emptyStateAction:hover {
+    background-color: #E2E8F0;
+}
+
 #tagFilterWidget {
     background-color: #F8FAFC;
     border: 1px solid #E2E8F0;

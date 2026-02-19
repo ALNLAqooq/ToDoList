@@ -3,6 +3,8 @@
 
 #include <QObject>
 
+class QTimer;
+
 class App : public QObject
 {
     Q_OBJECT
@@ -14,12 +16,15 @@ public:
     void init();
 
 private:
-    void initDatabase();
+    bool initDatabase();
     void initLogger();
     void initSettings();
     void initTheme();
     void initWindow();
-    void runDeleteMaintenance();
+    void runMaintenance();
+    void scheduleMaintenance();
+
+    QTimer *m_maintenanceTimer;
 };
 
 #endif // APP_H
