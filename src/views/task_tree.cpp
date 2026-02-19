@@ -1,6 +1,7 @@
 #include "task_tree.h"
 #include "../models/task.h"
 #include "../controllers/database.h"
+#include "../controllers/task_controller.h"
 #include <QHeaderView>
 #include <QDragEnterEvent>
 #include <QDropEvent>
@@ -105,6 +106,60 @@ void TaskTreeItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
 
     QRect textRect = option.rect;
     textRect.setLeft(cbRect.right() + 8);
+
+    // 添加优先级指示器
+    int taskId = index.data(RoleTaskId).toInt();
+    if (taskId > 0) {
+        TaskController controller;
+        Task task = controller.getTaskById(taskId);
+        if (task.id() > 0) {
+            QString priorityText;
+            QString priorityColor;
+            int priority = task.priority();
+
+            switch (priority) {
+                case 3:
+                    priorityText = "高";
+                    priorityColor = "#EF4444";
+                    break;
+                case 2:
+                    priorityText = "中";
+                    priorityColor = "#F59E0B";
+                    break;
+                case 1:
+                    priorityText = "低";
+                    priorityColor = "#10B981";
+                    break;
+                default:
+                    priorityText = "";
+                    priorityColor = "";
+                    break;
+            }
+
+            if (!priorityText.isEmpty()) {
+                QRect priorityRect = QRect(
+                    textRect.right() - 40,
+                    textRect.top() + 2,
+                    36,
+                    textRect.height() - 4
+                );
+                painter->save();
+                painter->setBrush(QColor(priorityColor));
+                painter->setPen(Qt::NoPen);
+                painter->drawRoundedRect(priorityRect, 4, 4);
+                painter->setPen(Qt::white);
+                QFont priorityFont = opt.font;
+                priorityFont.setPointSize(10);
+                priorityFont.setBold(true);
+                painter->setFont(priorityFont);
+                painter->drawText(priorityRect, Qt::AlignCenter, priorityText);
+                painter->restore();
+
+                // 调整文本绘制区域
+                textRect.setWidth(textRect.width() - 48);
+            }
+        }
+    }
 
     painter->save();
     QColor textColor = (option.state & QStyle::State_Selected)
