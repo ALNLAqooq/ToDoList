@@ -38,6 +38,9 @@ tmp/
 temp/
 *.tmp
 
+# 文档目录
+docs/
+
 # CMake
 CMakeLists.txt.user
 CMakeCache.txt

@@ -88,7 +88,7 @@ set(RESOURCES
     resources/styles.qrc
 )
 
-add_executable(ToDoList WIN32 ${SOURCES} ${UI_SOURCES} ${RESOURCES})
+add_executable(ToDoList WIN32 ${SOURCES} ${UI_SOURCES} ${RESOURCES} app.rc)
 
 target_link_libraries(ToDoList PRIVATE Qt5::Core Qt5::Gui Qt5::Widgets Qt5::Sql Qt5::Svg)
 
