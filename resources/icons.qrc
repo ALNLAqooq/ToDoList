@@ -24,5 +24,6 @@
         <file alias="priority_medium.svg">icons/priority_medium.svg</file>
         <file alias="settings.svg">icons/settings.svg</file>
         <file alias="sun.svg">icons/sun.svg</file>
+        <file alias="logo.png">icons/logo.png</file>
     </qresource>
 </RCC>

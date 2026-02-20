@@ -65,6 +65,7 @@ void MainWindow::setupUI()
 {
     setWindowTitle("任务清单");
     setMinimumSize(1024, 768);
+    setWindowIcon(QIcon(":/icons/logo.png"));
 
     QWidget *centralWidget = new QWidget(this);
     setCentralWidget(centralWidget);
