@@ -95,6 +95,7 @@ void MainWindow::setupUI()
     m_contentArea = new ContentArea(this);
     connect(m_sidebar, &Sidebar::tagSelected, m_contentArea, &ContentArea::onTagSelected);
     connect(m_contentArea, &ContentArea::tagsChanged, m_sidebar, &Sidebar::refreshTags);
+    connect(m_sidebar, &Sidebar::tagUpdated, m_contentArea, &ContentArea::loadTasks);
     m_contentArea->loadTasks();
 
     LOG_INFO("MainWindow", "Main window UI setup complete");

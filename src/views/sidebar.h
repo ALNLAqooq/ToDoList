@@ -28,6 +28,7 @@ public:
 signals:
     void groupChanged(const QString &group);
     void tagSelected(int tagId, const QString &tagName);
+    void tagUpdated();
     void collapseRequested();
     void sizeChanged();
 
@@ -48,6 +49,8 @@ private:
     void createFolder();
     void renameFolder(QListWidgetItem *item);
     void deleteFolder(QListWidgetItem *item);
+    void editTag(QListWidgetItem *item);
+    void deleteTag(QListWidgetItem *item);
 
     QVBoxLayout *m_mainLayout;
     QStackedWidget *m_stackWidget;

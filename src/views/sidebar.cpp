@@ -12,6 +12,8 @@
 #include <QAction>
 #include <QColor>
 #include <QLineEdit>
+#include <QColorDialog>
+#include "../controllers/task_controller.h"
 
 Sidebar::Sidebar(QWidget *parent)
     : QWidget(parent)
@@ -265,8 +267,24 @@ void Sidebar::setupTags()
         "QListWidget::item:selected { background: rgba(59, 130, 246, 0.2); }"
     );
     m_tagsList->setMaximumHeight(150);
+    m_tagsList->setContextMenuPolicy(Qt::CustomContextMenu);
 
     connect(m_tagsList, &QListWidget::itemClicked, this, &Sidebar::onItemClicked);
+    connect(m_tagsList, &QListWidget::customContextMenuRequested, this, [this](const QPoint &pos) {
+        QListWidgetItem *item = m_tagsList->itemAt(pos);
+        if (item) {
+            QMenu menu(this);
+            QAction *editAction = menu.addAction("编辑");
+            QAction *deleteAction = menu.addAction("删除");
+            QAction *selected = menu.exec(m_tagsList->mapToGlobal(pos));
+
+            if (selected == editAction) {
+                editTag(item);
+            } else if (selected == deleteAction) {
+                deleteTag(item);
+            }
+        }
+    });
 
     loadTags();
     LOG_INFO("Sidebar", "Tags setup complete");
@@ -281,6 +299,134 @@ void Sidebar::loadFolders()
         QListWidgetItem *item = new QListWidgetItem(folder.name(), m_foldersList);
         item->setData(Qt::UserRole, folder.id());
         m_foldersList->addItem(item);
+    }
+}
+
+void Sidebar::editTag(QListWidgetItem *item)
+{
+    if (!item) {
+        return;
+    }
+
+    int tagId = item->data(Qt::UserRole).toInt();
+    Tag tag = Database::instance().getAllTags().value(0);
+    for (const Tag &t : Database::instance().getAllTags()) {
+        if (t.id() == tagId) {
+            tag = t;
+            break;
+        }
+    }
+
+    QDialog dialog(this);
+    dialog.setWindowTitle("编辑标签");
+    dialog.setMinimumWidth(300);
+
+    QVBoxLayout *layout = new QVBoxLayout(&dialog);
+
+    QLabel *nameLabel = new QLabel("标签名称:", &dialog);
+    QLineEdit *nameEdit = new QLineEdit(&dialog);
+    nameEdit->setText(tag.name());
+
+    QLabel *colorLabel = new QLabel("标签颜色:", &dialog);
+    QPushButton *colorButton = new QPushButton(&dialog);
+    colorButton->setFixedHeight(30);
+    QColor currentColor(tag.color());
+    colorButton->setStyleSheet(QString("background-color: %1; border: 1px solid #ccc; border-radius: 4px;").arg(currentColor.name()));
+
+    connect(colorButton, &QPushButton::clicked, [&]() {
+        QColor color = QColorDialog::getColor(currentColor, &dialog, "选择标签颜色");
+        if (color.isValid()) {
+            currentColor = color;
+            colorButton->setStyleSheet(QString("background-color: %1; border: 1px solid #ccc; border-radius: 4px;").arg(color.name()));
+        }
+    });
+
+    QHBoxLayout *buttonLayout = new QHBoxLayout();
+    QPushButton *saveButton = new QPushButton("保存", &dialog);
+    QPushButton *cancelButton = new QPushButton("取消", &dialog);
+
+    saveButton->setStyleSheet(R"(
+        QPushButton {
+            background-color: #3B82F6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 16px;
+        }
+        QPushButton:hover {
+            background-color: #2563EB;
+        }
+    )");
+
+    cancelButton->setStyleSheet(R"(
+        QPushButton {
+            background-color: #F3F4F6;
+            color: #4B5563;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 16px;
+        }
+        QPushButton:hover {
+            background-color: #E5E7EB;
+        }
+    )");
+
+    buttonLayout->addStretch();
+    buttonLayout->addWidget(saveButton);
+    buttonLayout->addWidget(cancelButton);
+
+    layout->addWidget(nameLabel);
+    layout->addWidget(nameEdit);
+    layout->addWidget(colorLabel);
+    layout->addWidget(colorButton);
+    layout->addLayout(buttonLayout);
+
+    connect(saveButton, &QPushButton::clicked, [&]() {
+        QString newName = nameEdit->text().trimmed();
+        if (newName.isEmpty()) {
+            QMessageBox::warning(&dialog, "错误", "标签名称不能为空");
+            return;
+        }
+
+        tag.setName(newName);
+        tag.setColor(currentColor.name());
+
+        if (Database::instance().updateTag(tag)) {
+            loadTags();
+            emit tagUpdated();
+            LOG_INFO("Sidebar", QString("Tag updated: %1").arg(newName));
+            dialog.accept();
+        } else {
+            QMessageBox::warning(&dialog, "错误", "更新标签失败");
+        }
+    });
+
+    connect(cancelButton, &QPushButton::clicked, &dialog, &QDialog::reject);
+
+    dialog.exec();
+}
+
+void Sidebar::deleteTag(QListWidgetItem *item)
+{
+    if (!item) {
+        return;
+    }
+
+    int tagId = item->data(Qt::UserRole).toInt();
+    QString tagName = item->text();
+
+    auto reply = QMessageBox::question(this, "确认删除",
+        QString("确定要删除标签 \"%1\" 吗?\n\n使用该标签的任务将自动移除此标签。").arg(tagName),
+        QMessageBox::Yes | QMessageBox::No);
+
+    if (reply == QMessageBox::Yes) {
+        if (Database::instance().deleteTag(tagId)) {
+            loadTags();
+            emit tagUpdated();
+            LOG_INFO("Sidebar", QString("Tag deleted: %1").arg(tagName));
+        } else {
+            QMessageBox::warning(this, "错误", "删除标签失败");
+        }
     }
 }
 

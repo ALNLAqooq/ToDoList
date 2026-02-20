@@ -27,6 +27,7 @@ EmptyStateWidget::EmptyStateWidget(QWidget *parent)
     m_descriptionLabel->setObjectName("emptyStateDescription");
     m_descriptionLabel->setAlignment(Qt::AlignCenter);
     m_descriptionLabel->setWordWrap(true);
+    m_descriptionLabel->setMinimumWidth(300);
 
     m_actionButton = new QPushButton(this);
     m_actionButton->setObjectName("emptyStateAction");
