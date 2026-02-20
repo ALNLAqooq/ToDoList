@@ -138,8 +138,6 @@ ToDoList/
   data/                   # 数据目录
   backup/                 # 备份目录
   logs/                   # 日志目录
-  docs/                   # 文档目录
-  openspec/               # 开发规范
 ```
 
 ## Roadmap
