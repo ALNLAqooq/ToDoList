@@ -16,6 +16,7 @@ TaskDialog::TaskDialog(TaskController *controller, int taskId, QWidget *parent)
     , m_controller(controller)
     , m_taskId(taskId)
     , m_parentId(0)
+    , m_folderId(0)
 {
     setupUI();
     if (m_taskId != -1) {
@@ -711,6 +712,10 @@ void TaskDialog::onSaveClicked()
         }
     }
 
+    if (m_folderId > 0 && m_taskId > 0) {
+        Database::instance().assignTaskToFolder(m_taskId, m_folderId);
+    }
+
     Database &db = Database::instance();
 
     QSet<int> keptSubtaskIds;
@@ -728,6 +733,9 @@ void TaskDialog::onSaveClicked()
                 subtask.setTitle(title);
                 subtask.setParentId(m_taskId);
                 m_controller->updateTask(subtask);
+                if (m_folderId > 0) {
+                    Database::instance().assignTaskToFolder(subtask.id(), m_folderId);
+                }
                 keptSubtaskIds.insert(subtaskId);
                 continue;
             }
@@ -737,6 +745,9 @@ void TaskDialog::onSaveClicked()
         newSubtask.setTitle(title);
         newSubtask.setParentId(m_taskId);
         m_controller->addTask(newSubtask);
+        if (m_folderId > 0 && newSubtask.id() > 0) {
+            Database::instance().assignTaskToFolder(newSubtask.id(), m_folderId);
+        }
     }
 
     for (int deletedId : m_deletedSubtaskIds) {

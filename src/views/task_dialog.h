@@ -28,6 +28,7 @@ public:
 
     int getTaskId() const { return m_taskId; }
     void setParentTaskId(int parentId) { m_parentId = parentId; }
+    void setFolderId(int folderId) { m_folderId = folderId; }
     Task getTask() const;
 
 private slots:
@@ -61,6 +62,7 @@ private:
     TaskController *m_controller;
     int m_taskId;
     int m_parentId;
+    int m_folderId;
     Task m_currentTask;
 
     QTabWidget *m_tabWidget;

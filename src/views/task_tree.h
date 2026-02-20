@@ -43,6 +43,7 @@ public:
     void loadTasks(const QString &group);
     void loadTasks(const QString &group, int tagId);
     void loadTasks(const QString &group, int tagId, const TaskSearchFilters &filters);
+    void loadTasks(const QString &group, int tagId, const TaskSearchFilters &filters, int folderId);
     void refreshTasks();
     void expandAll();
     void collapseAll();
@@ -68,7 +69,7 @@ private:
     QStandardItem* createTaskItem(const Task &task, const QString &sourceInfo = QString(), const QString &sourceTooltip = QString());
     void loadChildTasks(int parentId, QStandardItem *parentItem);
     void loadAllTasks();
-    void loadFilteredTasks(const QString &group, int tagId, const TaskSearchFilters &filters);
+    void loadFilteredTasks(const QString &group, int tagId, const TaskSearchFilters &filters, int folderId);
     Task getTaskFromIndex(const QModelIndex &index) const;
     QSet<int> collectExpandedTaskIds() const;
     void restoreExpandedTaskIds(const QSet<int> &ids);
@@ -88,6 +89,7 @@ private:
     QMap<int, Task> m_tasksCache;
     QString m_currentGroup;
     int m_currentTagId;
+    int m_currentFolderId;
     TaskSearchFilters m_searchFilters;
 };
 

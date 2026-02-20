@@ -29,6 +29,7 @@ public:
 
     void setCurrentGroup(const QString &group);
     QString getCurrentGroup() const;
+    int currentFolderId() const;
     void loadTasks();
     void setSearchText(const QString &text);
 
@@ -37,6 +38,7 @@ signals:
 
 public slots:
     void onTagSelected(int tagId, const QString &tagName);
+    void onFolderSelected(int folderId, const QString &folderName);
 
 private slots:
     void onTaskSelected(int taskId);
@@ -74,6 +76,8 @@ private:
     int m_currentTaskId;
     int m_currentTagId;
     QString m_currentTagName;
+    int m_currentFolderId;
+    QString m_currentFolderName;
     TaskSearchFilters m_searchFilters;
 };
 

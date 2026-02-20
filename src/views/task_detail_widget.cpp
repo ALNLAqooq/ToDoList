@@ -3,6 +3,7 @@
 #include "../models/tag.h"
 #include "../utils/file_utils.h"
 #include "../utils/logger.h"
+#include "../utils/theme_utils.h"
 #include <QDate>
 #include <QHBoxLayout>
 #include <QFileInfo>
@@ -12,6 +13,7 @@
 #include <QDesktopServices>
 #include <QUrl>
 #include <QMessageBox>
+#include <QtGlobal>
 
 TaskDetailWidget::TaskDetailWidget(TaskController *controller, QWidget *parent)
     : QWidget(parent)
@@ -248,7 +250,34 @@ void TaskDetailWidget::updateDisplay()
     m_priorityLabel->show();
 
     if (m_currentTask.dueDate().isValid()) {
-        m_deadlineLabel->setText("截止日期: " + m_currentTask.dueDate().toString("yyyy-MM-dd HH:mm"));
+        const QDateTime createdAt = m_currentTask.createdAt();
+        const QDateTime dueAt = m_currentTask.dueDate();
+        const QDateTime now = QDateTime::currentDateTime();
+        double ratio = 0.0;
+        if (createdAt.isValid() && dueAt.isValid()) {
+            const qint64 total = createdAt.msecsTo(dueAt);
+            if (total > 0) {
+                const qint64 elapsed = createdAt.msecsTo(now);
+                ratio = qBound(0.0, static_cast<double>(elapsed) / static_cast<double>(total), 1.0);
+            } else {
+                ratio = now > dueAt ? 1.0 : 0.0;
+            }
+        } else {
+            ratio = now > dueAt ? 1.0 : 0.0;
+        }
+
+        const QColor startColor("#10B981");
+        const QColor endColor("#EF4444");
+        const QString blended = ThemeUtils::blendColors(startColor, endColor, ratio);
+        const QColor blendColor(blended);
+        const QString bgColor = QString("rgba(%1, %2, %3, 30)")
+                                    .arg(blendColor.red())
+                                    .arg(blendColor.green())
+                                    .arg(blendColor.blue());
+
+        m_deadlineLabel->setText("截止日期: " + dueAt.toString("yyyy-MM-dd HH:mm"));
+        m_deadlineLabel->setStyleSheet(QString("color: %1; background-color: %2; padding: 4px 8px; border-radius: 6px; font-weight: 600;")
+                                           .arg(blended, bgColor));
         m_deadlineLabel->show();
     } else {
         m_deadlineLabel->hide();

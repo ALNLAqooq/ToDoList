@@ -2590,7 +2590,7 @@ void SettingsDialog::onFeedback()
 
 void SettingsDialog::onOpenGitHub()
 {
-    QDesktopServices::openUrl(QUrl("https://github.com"));
+    QDesktopServices::openUrl(QUrl("https://github.com/ALNLAqooq/ToDoList"));
 }
 
 void SettingsDialog::onSave()

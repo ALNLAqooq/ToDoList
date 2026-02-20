@@ -26,6 +26,8 @@ ContentArea::ContentArea(QWidget *parent)
     , m_currentTaskId(0)
     , m_currentTagId(0)
     , m_currentTagName("")
+    , m_currentFolderId(0)
+    , m_currentFolderName("")
     , m_searchFilters()
 {
     setupUI();
@@ -121,6 +123,8 @@ void ContentArea::setupUI()
 void ContentArea::setCurrentGroup(const QString &group)
 {
     m_currentGroup = group;
+    m_currentFolderId = 0;
+    m_currentFolderName.clear();
     m_groupLabel->setText(group);
     if (m_taskTree) {
         m_taskTree->clearSelection();
@@ -135,6 +139,11 @@ QString ContentArea::getCurrentGroup() const
     return m_currentGroup;
 }
 
+int ContentArea::currentFolderId() const
+{
+    return m_currentFolderId;
+}
+
 void ContentArea::setSearchText(const QString &text)
 {
     if (m_searchWidget) {
@@ -145,7 +154,7 @@ void ContentArea::setSearchText(const QString &text)
 void ContentArea::loadTasks()
 {
     if (m_taskTree) {
-        m_taskTree->loadTasks(m_currentGroup, m_currentTagId, m_searchFilters);
+        m_taskTree->loadTasks(m_currentGroup, m_currentTagId, m_searchFilters, m_currentFolderId);
         LOG_INFO("ContentArea", "Tasks loaded in task tree for group: " + m_currentGroup);
     }
 }
@@ -216,6 +225,9 @@ void ContentArea::onContextMenuRequested(const QPoint &pos, int taskId)
     connect(addSubtaskAction, &QAction::triggered, this, [this, taskId]() {
         TaskDialog *dialog = new TaskDialog(m_controller, -1, this);
         dialog->setParentTaskId(taskId);
+        if (m_currentFolderId > 0) {
+            dialog->setFolderId(m_currentFolderId);
+        }
         dialog->exec();
         m_taskTree->refreshTasks();
         emit tagsChanged();
@@ -275,6 +287,20 @@ void ContentArea::onTagSelected(int tagId, const QString &tagName)
     } else {
         loadTasks();
     }
+}
+
+void ContentArea::onFolderSelected(int folderId, const QString &folderName)
+{
+    m_currentFolderId = folderId;
+    m_currentFolderName = folderName;
+    m_currentGroup = folderName;
+    m_groupLabel->setText(folderName);
+    if (m_taskTree) {
+        m_taskTree->clearSelection();
+    }
+    collapseTaskDetailPanel();
+    loadTasks();
+    LOG_INFO("ContentArea", QString("Folder selected: %1 (%2)").arg(folderName).arg(folderId));
 }
 
 void ContentArea::onClearTagFilter()
@@ -358,7 +384,7 @@ void ContentArea::updateEmptyState(int count)
     }
 
     const bool isRecycleBin = (m_currentGroup == "回收站");
-    const bool isAllTasks = (m_currentGroup == "所有任务" && m_currentTagId <= 0);
+    const bool isAllTasks = (m_currentGroup == "所有任务" && m_currentTagId <= 0 && m_currentFolderId <= 0);
     const bool hasFilters = m_searchFilters.hasActiveFilters() || m_currentTagId > 0;
 
     QString title;

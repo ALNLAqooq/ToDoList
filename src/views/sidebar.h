@@ -27,6 +27,7 @@ public:
 
 signals:
     void groupChanged(const QString &group);
+    void folderSelected(int folderId, const QString &folderName);
     void tagSelected(int tagId, const QString &tagName);
     void tagUpdated();
     void collapseRequested();

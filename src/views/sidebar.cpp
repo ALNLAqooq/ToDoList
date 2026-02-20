@@ -243,6 +243,13 @@ void Sidebar::onItemClicked(QListWidgetItem *item)
         return;
     }
 
+    if (owner == m_foldersList) {
+        int folderId = item->data(Qt::UserRole).toInt();
+        emit folderSelected(folderId, item->text());
+        LOG_INFO("Sidebar", QString("Folder selected: %1 (%2)").arg(item->text()).arg(folderId));
+        return;
+    }
+
     QString group = item->text();
     emit groupChanged(group);
     LOG_INFO("Sidebar", QString("Group changed to: %1").arg(group));

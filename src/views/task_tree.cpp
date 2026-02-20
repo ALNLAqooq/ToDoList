@@ -19,6 +19,8 @@
 #include <functional>
 #include <QRegularExpression>
 #include <QSqlError>
+#include "../utils/theme_manager.h"
+#include "../utils/theme_utils.h"
 
 namespace {
 constexpr int RoleTaskId = Qt::UserRole;
@@ -48,8 +50,8 @@ TaskTreeItemDelegate::TaskTreeItemDelegate(QObject *parent)
 
 QRect TaskTreeItemDelegate::checkboxRect(const QStyleOptionViewItem &option) const
 {
-    const int size = 16;
-    const int left = option.rect.left() + 6;
+    const int size = 20;
+    const int left = option.rect.left() + 16;
     const int top = option.rect.top() + (option.rect.height() - size) / 2;
     return QRect(left, top, size, size);
 }
@@ -60,6 +62,7 @@ void TaskTreeItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
     initStyleOption(&opt, index);
     opt.showDecorationSelected = false;
     const bool isSelected = opt.state & QStyle::State_Selected;
+    const bool isHovered = opt.state & QStyle::State_MouseOver;
     opt.state &= ~QStyle::State_Selected;
 
     QStyle *style = opt.widget ? opt.widget->style() : QApplication::style();
@@ -67,25 +70,57 @@ void TaskTreeItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
     opt.icon = QIcon();
     style->drawControl(QStyle::CE_ItemViewItem, &opt, painter, opt.widget);
 
+    const QRect cardRect = option.rect.adjusted(8, 6, -8, -6);
     const QRect cbRect = checkboxRect(option);
-    if (isSelected) {
-        QColor highlight = opt.palette.color(QPalette::Highlight);
-        QRect selectionRect = option.rect;
-        int selectionLeft = qMax(option.rect.left() + 2, cbRect.left() - 4);
-        selectionRect.setLeft(selectionLeft);
-        selectionRect.setRight(option.rect.right() - 2);
-        painter->fillRect(selectionRect, highlight);
+
+    ThemeUtils::Theme utilsTheme = ThemeUtils::Light;
+    ThemeManager::Theme currentTheme = ThemeManager::instance().currentTheme();
+    if (currentTheme == ThemeManager::Dark) {
+        utilsTheme = ThemeUtils::Dark;
+    } else if (currentTheme == ThemeManager::System) {
+        const QColor textColor = opt.palette.color(QPalette::Text);
+        const bool textIsLight = ThemeUtils::isColorLight(textColor);
+        utilsTheme = textIsLight ? ThemeUtils::Dark : ThemeUtils::Light;
     }
+
+    QColor cardBg = ThemeUtils::getSurfaceColor(utilsTheme);
+    QColor borderColor = ThemeUtils::getBorderColor(utilsTheme);
+    QColor accent = ThemeUtils::getPrimaryColor(utilsTheme);
+    if (isHovered) {
+        QColor hover = accent;
+        hover.setAlpha(utilsTheme == ThemeUtils::Dark ? 30 : 20);
+        const QString blended = ThemeUtils::blendColors(cardBg, hover, 0.08);
+        cardBg = QColor(blended);
+        borderColor = accent.lighter(130);
+    }
+    if (isSelected) {
+        borderColor = accent;
+    }
+
+    painter->save();
+    painter->setRenderHint(QPainter::Antialiasing, true);
+    painter->setBrush(cardBg);
+    painter->setPen(QPen(borderColor, 1));
+    painter->drawRoundedRect(cardRect, 8, 8);
+
+    if (isSelected) {
+        QColor highlight = accent;
+        highlight.setAlpha(utilsTheme == ThemeUtils::Dark ? 45 : 35);
+        painter->setBrush(highlight);
+        painter->setPen(Qt::NoPen);
+        painter->drawRoundedRect(cardRect.adjusted(1, 1, -1, -1), 7, 7);
+    }
+    painter->restore();
 
     const bool completed = index.data(RoleCompleted).toBool();
 
     painter->save();
     painter->setRenderHint(QPainter::Antialiasing, true);
 
-    QColor borderColor = completed ? QColor("#3B82F6") : QColor("#CBD5E1");
+    QColor checkboxBorderColor = completed ? QColor("#3B82F6") : QColor("#CBD5E1");
     QColor fillColor = completed ? QColor("#3B82F6") : QColor("#FFFFFF");
 
-    painter->setPen(QPen(borderColor, 1.5));
+    painter->setPen(QPen(checkboxBorderColor, 1.5));
     painter->setBrush(fillColor);
     painter->drawRoundedRect(cbRect, 3, 3);
 
@@ -104,8 +139,9 @@ void TaskTreeItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
     const QString titleText = index.data(Qt::DisplayRole).toString();
     const QString sourceInfo = index.data(RoleSourceInfo).toString();
 
-    QRect textRect = option.rect;
-    textRect.setLeft(cbRect.right() + 8);
+    QRect textRect = cardRect;
+    textRect.setLeft(cbRect.right() + 16);
+    textRect.setRight(cardRect.right() - 6);
 
     // 添加优先级指示器
     int taskId = index.data(RoleTaskId).toInt();
@@ -137,11 +173,14 @@ void TaskTreeItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
             }
 
             if (!priorityText.isEmpty()) {
+                const int prioritySize = 30;
+                const int priorityRight = cardRect.right() - 8;
+                const int priorityTop = cardRect.top() + (cardRect.height() - prioritySize) / 2;
                 QRect priorityRect = QRect(
-                    textRect.right() - 40,
-                    textRect.top() + 2,
-                    36,
-                    textRect.height() - 4
+                    priorityRight - prioritySize + 1,
+                    priorityTop,
+                    prioritySize,
+                    prioritySize
                 );
                 painter->save();
                 painter->setBrush(QColor(priorityColor));
@@ -149,34 +188,37 @@ void TaskTreeItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
                 painter->drawRoundedRect(priorityRect, 4, 4);
                 painter->setPen(Qt::white);
                 QFont priorityFont = opt.font;
-                priorityFont.setPointSize(10);
+                priorityFont.setPointSize(12);
                 priorityFont.setBold(true);
                 painter->setFont(priorityFont);
                 painter->drawText(priorityRect, Qt::AlignCenter, priorityText);
                 painter->restore();
 
                 // 调整文本绘制区域
-                textRect.setWidth(textRect.width() - 48);
+                textRect.setWidth(textRect.width() - (prioritySize + 12));
             }
         }
     }
 
     painter->save();
-    QColor textColor = (option.state & QStyle::State_Selected)
-        ? opt.palette.color(QPalette::HighlightedText)
-        : opt.palette.color(QPalette::Text);
+    QColor textColor = opt.palette.color(QPalette::Text);
     QVariant fg = index.data(Qt::ForegroundRole);
     if (fg.canConvert<QBrush>()) {
         textColor = fg.value<QBrush>().color();
     }
 
+    QFont titleFont = opt.font;
+    const int basePoint = titleFont.pointSize() > 0 ? titleFont.pointSize() : 14;
+    titleFont.setPointSize(basePoint );
+    titleFont.setBold(false);
+    QFont sourceFont = opt.font;
+    sourceFont.setPointSize(qMax(10, basePoint - 1));
+
     if (sourceInfo.isEmpty()) {
+        painter->setFont(titleFont);
         painter->setPen(textColor);
         painter->drawText(textRect, Qt::AlignVCenter | Qt::AlignLeft, titleText);
     } else {
-        QFont titleFont = opt.font;
-        QFont sourceFont = opt.font;
-
         QFontMetrics titleFm(titleFont);
         QFontMetrics sourceFm(sourceFont);
         const QString sourceText = QString("来源: %1").arg(sourceInfo);
@@ -209,7 +251,7 @@ void TaskTreeItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
 QSize TaskTreeItemDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
     QSize size = QStyledItemDelegate::sizeHint(option, index);
-    int height = qMax(size.height(), option.fontMetrics.height() + 14);
+    int height = qMax(size.height(), option.fontMetrics.height() + 44);
     return QSize(size.width(), height);
 }
 
@@ -237,6 +279,7 @@ TaskTree::TaskTree(TaskController *controller, QWidget *parent)
     , m_contextMenu(nullptr)
     , m_currentGroup("所有任务")
     , m_currentTagId(0)
+    , m_currentFolderId(0)
     , m_searchFilters()
 {
     setupUI();
@@ -451,10 +494,10 @@ void TaskTree::loadAllTasks()
     emit taskCountChanged(m_treeModel->rowCount());
 }
 
-void TaskTree::loadFilteredTasks(const QString &group, int tagId, const TaskSearchFilters &filters)
+void TaskTree::loadFilteredTasks(const QString &group, int tagId, const TaskSearchFilters &filters, int folderId)
 {
     m_treeModel->clear();
-        m_treeModel->setHorizontalHeaderLabels(QStringList() << "任务");
+    m_treeModel->setHorizontalHeaderLabels(QStringList() << "任务");
     m_tasksCache.clear();
     
     QList<Task> tasks;
@@ -485,7 +528,7 @@ void TaskTree::loadFilteredTasks(const QString &group, int tagId, const TaskSear
     } else if (group == "所有任务") {
         whereClause = "1=1";
     } else {
-        if (tagId <= 0 && !isRecycleBin) {
+        if (tagId <= 0 && folderId <= 0 && !isRecycleBin) {
             loadAllTasks();
             return;
         }
@@ -520,6 +563,12 @@ void TaskTree::loadFilteredTasks(const QString &group, int tagId, const TaskSear
         for (int id : tagIds) {
             bindValues << id;
         }
+    }
+
+    if (folderId > 0) {
+        joins << "INNER JOIN task_folders tf ON tf.task_id = t.id";
+        conditions << "tf.folder_id = ?";
+        bindValues << folderId;
     }
     
     if (filters.priority > 0) {
@@ -712,31 +761,37 @@ void TaskTree::loadFilteredTasks(const QString &group, int tagId, const TaskSear
 
 void TaskTree::loadTasks()
 {
-    loadTasks("所有任务", 0, TaskSearchFilters());
+    loadTasks("所有任务", 0, TaskSearchFilters(), 0);
 }
 
 void TaskTree::loadTasks(const QString &group)
 {
-    loadTasks(group, 0, TaskSearchFilters());
+    loadTasks(group, 0, TaskSearchFilters(), 0);
 }
 
 void TaskTree::loadTasks(const QString &group, int tagId)
 {
-    loadTasks(group, tagId, m_searchFilters);
+    loadTasks(group, tagId, m_searchFilters, 0);
 }
 
 void TaskTree::loadTasks(const QString &group, int tagId, const TaskSearchFilters &filters)
 {
+    loadTasks(group, tagId, filters, 0);
+}
+
+void TaskTree::loadTasks(const QString &group, int tagId, const TaskSearchFilters &filters, int folderId)
+{
     m_currentGroup = group;
     m_currentTagId = tagId;
+    m_currentFolderId = folderId;
     m_searchFilters = filters;
 
-    if (group == "所有任务" && tagId <= 0 && !filters.hasActiveFilters()) {
+    if (group == "所有任务" && tagId <= 0 && folderId <= 0 && !filters.hasActiveFilters()) {
         loadAllTasks();
         return;
     }
 
-    loadFilteredTasks(group, tagId, filters);
+    loadFilteredTasks(group, tagId, filters, folderId);
 }
 
 void TaskTree::refreshTasks()
@@ -748,7 +803,7 @@ void TaskTree::refreshTasks()
         selectedId = currentIndex.data(RoleTaskId).toInt();
     }
 
-    loadTasks(m_currentGroup, m_currentTagId, m_searchFilters);
+    loadTasks(m_currentGroup, m_currentTagId, m_searchFilters, m_currentFolderId);
     restoreExpandedTaskIds(expandedIds);
 
     if (selectedId > 0) {

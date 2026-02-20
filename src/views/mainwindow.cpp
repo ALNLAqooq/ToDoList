@@ -8,6 +8,7 @@
 #include "../utils/logger.h"
 #include "../utils/theme_manager.h"
 #include "../controllers/task_controller.h"
+#include "../controllers/database.h"
 #include "../controllers/notificationmanager.h"
 #include <QSettings>
 #include <QApplication>
@@ -94,6 +95,7 @@ void MainWindow::setupUI()
     });
 
     m_contentArea = new ContentArea(this);
+    connect(m_sidebar, &Sidebar::folderSelected, m_contentArea, &ContentArea::onFolderSelected);
     connect(m_sidebar, &Sidebar::tagSelected, m_contentArea, &ContentArea::onTagSelected);
     connect(m_contentArea, &ContentArea::tagsChanged, m_sidebar, &Sidebar::refreshTags);
     connect(m_sidebar, &Sidebar::tagUpdated, m_contentArea, &ContentArea::loadTasks);
@@ -147,6 +149,10 @@ void MainWindow::setupBottomBar()
             if (!controller.addTask(newTask)) {
                 QMessageBox::critical(this, "保存失败", "快速添加任务失败。");
                 return;
+            }
+            int folderId = m_contentArea ? m_contentArea->currentFolderId() : 0;
+            if (folderId > 0) {
+                Database::instance().assignTaskToFolder(newTask.id(), folderId);
             }
             m_quickTaskInput->clear();
             refreshTaskList();
@@ -309,6 +315,10 @@ void MainWindow::onNewTaskClicked()
     
     TaskController *controller = new TaskController(this);
     TaskDialog *dialog = new TaskDialog(controller, -1, this);
+    int folderId = m_contentArea ? m_contentArea->currentFolderId() : 0;
+    if (folderId > 0) {
+        dialog->setFolderId(folderId);
+    }
     
     if (dialog->exec() == QDialog::Accepted) {
         LOG_INFO("MainWindow", "New task created via dialog");
