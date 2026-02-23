@@ -211,6 +211,7 @@ void TaskTreeItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
     const int basePoint = titleFont.pointSize() > 0 ? titleFont.pointSize() : 14;
     titleFont.setPointSize(basePoint );
     titleFont.setBold(false);
+    titleFont.setStrikeOut(completed);
     QFont sourceFont = opt.font;
     sourceFont.setPointSize(qMax(10, basePoint - 1));
 
