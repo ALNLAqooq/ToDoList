@@ -32,6 +32,7 @@ public:
     int currentFolderId() const;
     void loadTasks();
     void setSearchText(const QString &text);
+    bool deleteCurrentTask();
 
 signals:
     void tagsChanged();

@@ -1,6 +1,8 @@
 #include "settingsdialog.h"
 #include "../controllers/backupmanager.h"
 #include "../controllers/database.h"
+#include "../utils/shortcut_keys.h"
+#include "../utils/icon_utils.h"
 #include "../utils/theme_manager.h"
 #include <QTabWidget>
 #include <QComboBox>
@@ -32,6 +34,8 @@
 #include <QProgressDialog>
 #include <QElapsedTimer>
 #include <QStandardPaths>
+#include <QKeySequenceEdit>
+#include <QKeySequence>
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QSqlDatabase>
@@ -43,6 +47,8 @@
 #include <QHash>
 #include <QSet>
 #include <QVector>
+#include <QShortcut>
+#include <QFont>
 
 namespace {
 const char *KEY_THEME = "settings_theme";
@@ -154,6 +160,50 @@ struct ImportedNotification {
     bool read = false;
     QDateTime createdAt;
 };
+
+struct ShortcutRowDef {
+    const char *key;
+    const char *label;
+    const char *defaultSequence;
+};
+
+const QVector<ShortcutRowDef> &shortcutRowDefs()
+{
+    static const QVector<ShortcutRowDef> defs = {
+        { ShortcutKeys::NewTask, "新建任务", ShortcutKeys::DefaultNewTask },
+        { ShortcutKeys::Search, "搜索", ShortcutKeys::DefaultSearch },
+        { ShortcutKeys::Save, "保存", ShortcutKeys::DefaultSave },
+        { ShortcutKeys::DeleteTask, "删除任务", ShortcutKeys::DefaultDeleteTask },
+        { ShortcutKeys::ToggleTheme, "切换主题", ShortcutKeys::DefaultToggleTheme }
+    };
+    return defs;
+}
+
+QString defaultShortcutForKey(const QString &key)
+{
+    for (const auto &def : shortcutRowDefs()) {
+        if (key == def.key) {
+            return def.defaultSequence;
+        }
+    }
+    return QString();
+}
+
+QString displayShortcutText(const QString &sequence)
+{
+    QString trimmed = sequence.trimmed();
+    return trimmed.isEmpty() ? QString("未设置") : trimmed;
+}
+
+QString buildCornerRadiusStyle(int radius)
+{
+    return QString(
+        "QLineEdit, QTextEdit, QPlainTextEdit, QComboBox, QDateEdit, QTimeEdit, QDateTimeEdit, "
+        "QSpinBox, QDoubleSpinBox, QPushButton, QToolButton, QGroupBox, QMenu, QListWidget, "
+        "QTableWidget, QTreeView, QTabBar::tab { border-radius: %1px; }\n"
+        "TaskCardWidget { border-radius: %1px; }\n"
+    ).arg(radius);
+}
 
 QString isoDateString(const QDateTime &dt)
 {
@@ -758,6 +808,8 @@ SettingsDialog::SettingsDialog(BackupManager *backupManager, QWidget *parent)
     , m_autoCleanupCheck(nullptr)
     , m_cleanupDaysSpin(nullptr)
     , m_shortcutsTable(nullptr)
+    , m_customizeShortcutButton(nullptr)
+    , m_saveShortcut(nullptr)
 {
     setWindowTitle("设置");
     setMinimumSize(720, 520);
@@ -793,6 +845,10 @@ void SettingsDialog::setupUI()
     connect(buttonBox, &QDialogButtonBox::accepted, this, &SettingsDialog::onSave);
     connect(buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
     mainLayout->addWidget(buttonBox);
+
+    m_saveShortcut = new QShortcut(QKeySequence(getSetting(ShortcutKeys::Save, ShortcutKeys::DefaultSave)), this);
+    m_saveShortcut->setContext(Qt::WidgetWithChildrenShortcut);
+    connect(m_saveShortcut, &QShortcut::activated, this, &SettingsDialog::onSave);
 }
 
 QWidget *SettingsDialog::buildGeneralTab()
@@ -1016,35 +1072,48 @@ QWidget *SettingsDialog::buildShortcutsTab()
     m_shortcutsTable->horizontalHeader()->setStretchLastSection(true);
     m_shortcutsTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_shortcutsTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    m_shortcutsTable->setSelectionMode(QAbstractItemView::SingleSelection);
 
-    auto addRow = [&](const QString &action, const QString &shortcut) {
+    const auto &defs = shortcutRowDefs();
+    for (int i = 0; i < defs.size(); ++i) {
+        const auto &def = defs[i];
+        const QString stored = getSetting(def.key, def.defaultSequence);
         int row = m_shortcutsTable->rowCount();
         m_shortcutsTable->insertRow(row);
-        m_shortcutsTable->setItem(row, 0, new QTableWidgetItem(action));
-        m_shortcutsTable->setItem(row, 1, new QTableWidgetItem(shortcut));
-    };
-
-    addRow("新建任务", "Ctrl+N");
-    addRow("搜索", "Ctrl+F");
-    addRow("保存", "Ctrl+S");
-    addRow("删除任务", "Delete");
-    addRow("切换主题", "Ctrl+T");
+        auto *actionItem = new QTableWidgetItem(QString::fromUtf8(def.label));
+        actionItem->setData(Qt::UserRole, def.key);
+        auto *shortcutItem = new QTableWidgetItem(displayShortcutText(stored));
+        shortcutItem->setData(Qt::UserRole, def.key);
+        m_shortcutsTable->setItem(row, 0, actionItem);
+        m_shortcutsTable->setItem(row, 1, shortcutItem);
+    }
 
     layout->addWidget(m_shortcutsTable, 1);
 
     auto *btnLayout = new QHBoxLayout();
-    auto *customizeBtn = new QPushButton("自定义", this);
-    customizeBtn->setEnabled(false);
+    m_customizeShortcutButton = new QPushButton("自定义", this);
+    m_customizeShortcutButton->setEnabled(false);
+    connect(m_customizeShortcutButton, &QPushButton::clicked, this, &SettingsDialog::onCustomizeShortcut);
+
     auto *resetBtn = new QPushButton("恢复默认", this);
     connect(resetBtn, &QPushButton::clicked, this, &SettingsDialog::onResetShortcuts);
+
+    connect(m_shortcutsTable->selectionModel(), &QItemSelectionModel::selectionChanged, this, [this]() {
+        bool hasSelection = m_shortcutsTable && m_shortcutsTable->currentRow() >= 0;
+        if (m_customizeShortcutButton) {
+            m_customizeShortcutButton->setEnabled(hasSelection);
+        }
+    });
+
     btnLayout->addStretch();
-    btnLayout->addWidget(customizeBtn);
+    btnLayout->addWidget(m_customizeShortcutButton);
     btnLayout->addWidget(resetBtn);
     layout->addLayout(btnLayout);
     return widget;
 }
 
 QWidget *SettingsDialog::buildAboutTab()
+
 {
     auto *widget = new QWidget(this);
     auto *layout = new QVBoxLayout(widget);
@@ -1134,6 +1203,11 @@ void SettingsDialog::loadSettings()
     m_parentDeleteCombo->setCurrentIndex(getSetting(KEY_DELETE_PARENT_ACTION, "0").toInt());
     m_autoCleanupCheck->setChecked(getSetting(KEY_DELETE_AUTO_CLEANUP, "1") == "1");
     m_cleanupDaysSpin->setValue(getSetting(KEY_DELETE_CLEANUP_DAYS, "14").toInt());
+
+    refreshShortcutsTable();
+    if (m_saveShortcut) {
+        m_saveShortcut->setKey(QKeySequence(getSetting(ShortcutKeys::Save, ShortcutKeys::DefaultSave)));
+    }
 }
 
 bool SettingsDialog::applySettings()
@@ -1144,6 +1218,25 @@ bool SettingsDialog::applySettings()
     ok &= setSetting(KEY_LANGUAGE, m_languageCombo->currentData().toString());
     ok &= setSetting(KEY_AUTO_LAUNCH, m_autoLaunchCheck->isChecked() ? "1" : "0");
     ok &= setSetting(KEY_RESTORE_LAST, m_restoreLastCheck->isChecked() ? "1" : "0");
+
+#ifdef Q_OS_WIN
+    {
+        QSettings runKey("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+                         QSettings::NativeFormat);
+        QString appName = QCoreApplication::applicationName();
+        QString appPath = QDir::toNativeSeparators(QCoreApplication::applicationFilePath());
+        QString value = QString("\"%1\"").arg(appPath);
+        if (m_autoLaunchCheck->isChecked()) {
+            runKey.setValue(appName, value);
+        } else {
+            runKey.remove(appName);
+        }
+        runKey.sync();
+        if (runKey.status() != QSettings::NoError) {
+            ok = false;
+        }
+    }
+#endif
 
     ok &= setSetting(KEY_CARD_STYLE, QString::number(m_cardStyleCombo->currentIndex()));
     ok &= setSetting(KEY_FONT_SIZE, QString::number(m_fontSizeSpin->value()));
@@ -1185,8 +1278,39 @@ bool SettingsDialog::applySettings()
         themeManager.setFollowSystem(false);
         themeManager.setTheme(static_cast<ThemeManager::Theme>(themeValue));
     }
+    themeManager.setCustomStyleSheet(buildCornerRadiusStyle(m_cornerRadiusSpin->value()));
+
+    QFont appFont = qApp->font();
+    appFont.setPointSize(m_fontSizeSpin->value());
+    qApp->setFont(appFont);
 
     return ok;
+}
+
+void SettingsDialog::refreshShortcutsTable()
+{
+    if (!m_shortcutsTable) {
+        return;
+    }
+
+    for (int row = 0; row < m_shortcutsTable->rowCount(); ++row) {
+        QTableWidgetItem *actionItem = m_shortcutsTable->item(row, 0);
+        if (!actionItem) {
+            continue;
+        }
+        const QString key = actionItem->data(Qt::UserRole).toString();
+        if (key.isEmpty()) {
+            continue;
+        }
+        const QString stored = getSetting(key, defaultShortcutForKey(key));
+        QTableWidgetItem *shortcutItem = m_shortcutsTable->item(row, 1);
+        if (!shortcutItem) {
+            shortcutItem = new QTableWidgetItem();
+            m_shortcutsTable->setItem(row, 1, shortcutItem);
+        }
+        shortcutItem->setData(Qt::UserRole, key);
+        shortcutItem->setText(displayShortcutText(stored));
+    }
 }
 
 QString SettingsDialog::getSetting(const QString &key, const QString &defaultValue) const
@@ -2570,13 +2694,135 @@ void SettingsDialog::onImportSqlite()
 
 void SettingsDialog::onClearCache()
 {
-    QMessageBox::information(this, "清理缓存", "缓存已清理。");
+    int removedFiles = 0;
+    QDir logsDir(QDir::currentPath() + "/logs");
+    if (logsDir.exists()) {
+        QFileInfoList files = logsDir.entryInfoList(QDir::Files | QDir::NoSymLinks);
+        for (const QFileInfo &info : files) {
+            if (QFile::remove(info.absoluteFilePath())) {
+                removedFiles++;
+            }
+        }
+    }
+
+    IconUtils::clearCache();
+
+    QMessageBox::information(this,
+                             "清理缓存",
+                             QString("已清理 %1 个日志文件。").arg(removedFiles));
 }
+
+void SettingsDialog::onCustomizeShortcut()
+{
+    if (!m_shortcutsTable) {
+        return;
+    }
+
+    int row = m_shortcutsTable->currentRow();
+    if (row < 0) {
+        return;
+    }
+
+    QTableWidgetItem *actionItem = m_shortcutsTable->item(row, 0);
+    QTableWidgetItem *shortcutItem = m_shortcutsTable->item(row, 1);
+    if (!actionItem || !shortcutItem) {
+        return;
+    }
+
+    const QString key = actionItem->data(Qt::UserRole).toString();
+    if (key.isEmpty()) {
+        return;
+    }
+
+    QString currentSequence = shortcutItem->text();
+    if (currentSequence == "未设置") {
+        currentSequence.clear();
+    }
+
+    QDialog dialog(this);
+    dialog.setWindowTitle("设置快捷键");
+    auto *layout = new QVBoxLayout(&dialog);
+    auto *label = new QLabel(QString("为“%1”设置快捷键").arg(actionItem->text()), &dialog);
+    auto *edit = new QKeySequenceEdit(QKeySequence(currentSequence), &dialog);
+
+    layout->addWidget(label);
+    layout->addWidget(edit);
+
+    auto *clearButton = new QPushButton("清除快捷键", &dialog);
+    connect(clearButton, &QPushButton::clicked, edit, [edit]() {
+        edit->setKeySequence(QKeySequence());
+    });
+    layout->addWidget(clearButton);
+
+    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
+    connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    layout->addWidget(buttons);
+
+    if (dialog.exec() != QDialog::Accepted) {
+        return;
+    }
+
+    QString sequence = edit->keySequence().toString(QKeySequence::NativeText).trimmed();
+
+    if (!sequence.isEmpty()) {
+        for (int i = 0; i < m_shortcutsTable->rowCount(); ++i) {
+            if (i == row) {
+                continue;
+            }
+            QTableWidgetItem *otherItem = m_shortcutsTable->item(i, 1);
+            if (!otherItem) {
+                continue;
+            }
+            QString otherSeq = otherItem->text();
+            if (otherSeq == "未设置") {
+                otherSeq.clear();
+            }
+            if (otherSeq == sequence) {
+                auto response = QMessageBox::warning(
+                    this,
+                    "快捷键重复",
+                    QString("快捷键 %1 已被用于“%2”。\n是否继续？").arg(sequence, m_shortcutsTable->item(i, 0)->text()),
+                    QMessageBox::Yes | QMessageBox::No,
+                    QMessageBox::No);
+                if (response != QMessageBox::Yes) {
+                    return;
+                }
+                break;
+            }
+        }
+    }
+
+    if (!setSetting(key, sequence)) {
+        QMessageBox::warning(this, "保存失败", "无法保存快捷键设置。请检查权限或数据库状态。");
+        return;
+    }
+
+    shortcutItem->setText(displayShortcutText(sequence));
+    if (key == ShortcutKeys::Save && m_saveShortcut) {
+        m_saveShortcut->setKey(QKeySequence(sequence));
+    }
+
+    emit shortcutsChanged();
+}
+
 
 void SettingsDialog::onResetShortcuts()
 {
+    const auto &defs = shortcutRowDefs();
+    for (const auto &def : defs) {
+        setSetting(def.key, def.defaultSequence);
+    }
+
+    refreshShortcutsTable();
+    if (m_saveShortcut) {
+        m_saveShortcut->setKey(QKeySequence(getSetting(ShortcutKeys::Save, ShortcutKeys::DefaultSave)));
+    }
+
+    emit shortcutsChanged();
     QMessageBox::information(this, "快捷键", "已恢复默认快捷键。");
 }
+
 
 void SettingsDialog::onCheckUpdates()
 {

@@ -14,6 +14,7 @@ class QLineEdit;
 class QPushButton;
 class QLabel;
 class QTableWidget;
+class QShortcut;
 
 class SettingsDialog : public QDialog
 {
@@ -24,6 +25,7 @@ public:
 
 signals:
     void dataImported();
+    void shortcutsChanged();
 
 private slots:
     void onBrowseBackupLocation();
@@ -34,6 +36,7 @@ private slots:
     void onExportSqlite();
     void onImportSqlite();
     void onClearCache();
+    void onCustomizeShortcut();
     void onResetShortcuts();
     void onCheckUpdates();
     void onFeedback();
@@ -53,6 +56,7 @@ private:
 
     void loadSettings();
     bool applySettings();
+    void refreshShortcutsTable();
     QString getSetting(const QString &key, const QString &defaultValue) const;
     bool setSetting(const QString &key, const QString &value);
 
@@ -91,6 +95,8 @@ private:
     QSpinBox *m_cleanupDaysSpin;
 
     QTableWidget *m_shortcutsTable;
+    QPushButton *m_customizeShortcutButton;
+    QShortcut *m_saveShortcut;
 };
 
 #endif // SETTINGSDIALOG_H

@@ -58,10 +58,10 @@ void ThemeManager::loadThemePreference()
     if (m_followSystem) {
         m_currentTheme = ThemeManager::System;
         ThemeManager::Theme detectedTheme = detectSystemTheme();
-        qApp->setStyleSheet(detectedTheme == ThemeManager::Light ? m_lightStyleSheet : m_darkStyleSheet);
+        qApp->setStyleSheet(getStyleSheet());
     } else {
         m_currentTheme = static_cast<ThemeManager::Theme>(themeValue);
-        qApp->setStyleSheet(m_currentTheme == ThemeManager::Light ? m_lightStyleSheet : m_darkStyleSheet);
+        qApp->setStyleSheet(getStyleSheet());
     }
 }
 
@@ -91,15 +91,7 @@ void ThemeManager::setTheme(ThemeManager::Theme theme)
 
     m_currentTheme = theme;
 
-    QString styleSheet;
-    if (theme == ThemeManager::System) {
-        ThemeManager::Theme detectedTheme = detectSystemTheme();
-        styleSheet = detectedTheme == ThemeManager::Light ? m_lightStyleSheet : m_darkStyleSheet;
-    } else {
-        styleSheet = theme == ThemeManager::Light ? m_lightStyleSheet : m_darkStyleSheet;
-    }
-
-    qApp->setStyleSheet(styleSheet);
+    qApp->setStyleSheet(getStyleSheet());
     emit themeChanged(theme);
     saveThemePreference();
 }
@@ -117,11 +109,17 @@ void ThemeManager::toggleTheme()
 
 QString ThemeManager::getStyleSheet() const
 {
+    QString base;
     if (m_currentTheme == ThemeManager::System) {
         ThemeManager::Theme detectedTheme = detectSystemTheme();
-        return detectedTheme == ThemeManager::Light ? m_lightStyleSheet : m_darkStyleSheet;
+        base = detectedTheme == ThemeManager::Light ? m_lightStyleSheet : m_darkStyleSheet;
+    } else {
+        base = m_currentTheme == ThemeManager::Light ? m_lightStyleSheet : m_darkStyleSheet;
     }
-    return m_currentTheme == ThemeManager::Light ? m_lightStyleSheet : m_darkStyleSheet;
+    if (m_customStyleSheet.trimmed().isEmpty()) {
+        return base;
+    }
+    return base + "\n" + m_customStyleSheet;
 }
 
 QColor ThemeManager::getPriorityColor(ThemeManager::Priority priority) const
@@ -145,7 +143,7 @@ void ThemeManager::setFollowSystem(bool follow)
         if (follow) {
             m_currentTheme = ThemeManager::System;
             ThemeManager::Theme detectedTheme = detectSystemTheme();
-            qApp->setStyleSheet(detectedTheme == ThemeManager::Light ? m_lightStyleSheet : m_darkStyleSheet);
+            qApp->setStyleSheet(getStyleSheet());
         } else {
             ThemeManager::Theme newTheme = detectSystemTheme() == ThemeManager::Light ? ThemeManager::Light : ThemeManager::Dark;
             setTheme(newTheme);
@@ -191,11 +189,19 @@ void ThemeManager::applyTheme(QWidget* widget)
     }
 }
 
+void ThemeManager::setCustomStyleSheet(const QString &styleSheet)
+{
+    if (m_customStyleSheet == styleSheet) {
+        return;
+    }
+    m_customStyleSheet = styleSheet;
+    qApp->setStyleSheet(getStyleSheet());
+}
+
 void ThemeManager::onSystemThemeChanged()
 {
     if (m_followSystem && m_currentTheme == ThemeManager::System) {
-        ThemeManager::Theme detectedTheme = detectSystemTheme();
-        qApp->setStyleSheet(detectedTheme == ThemeManager::Light ? m_lightStyleSheet : m_darkStyleSheet);
+        qApp->setStyleSheet(getStyleSheet());
         emit themeChanged(m_currentTheme);
     }
 }

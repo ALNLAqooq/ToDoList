@@ -982,3 +982,22 @@ QListWidget#detailDependencyList {
 #detailCollapseButton:hover {
     background-color: #475569;
 }
+
+#taskDialogTagList,
+#taskDialogFileList,
+#taskDialogStepList,
+#taskDialogDependencyList {
+    border: 1px solid #334155;
+    border-radius: 6px;
+    background-color: #1E293B;
+    padding: 6px;
+    color: #F8FAFC;
+}
+
+#taskDialogTagList::item:selected,
+#taskDialogFileList::item:selected,
+#taskDialogStepList::item:selected,
+#taskDialogDependencyList::item:selected {
+    background-color: #3B82F6;
+    color: #FFFFFF;
+}

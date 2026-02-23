@@ -39,6 +39,7 @@ public:
     Theme themeFromName(const QString& name) const;
 
     void applyTheme(QWidget* widget = nullptr);
+    void setCustomStyleSheet(const QString &styleSheet);
 
 signals:
     void themeChanged(Theme theme);
@@ -61,6 +62,7 @@ private:
     bool m_followSystem;
     QString m_lightStyleSheet;
     QString m_darkStyleSheet;
+    QString m_customStyleSheet;
 
     QSettings* m_settings;
     static const QString SETTINGS_KEY_THEME;

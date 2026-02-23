@@ -20,6 +20,7 @@ class NotificationPanel;
 class BackupManager;
 class SettingsDialog;
 class QProgressDialog;
+class QShortcut;
 
 class MainWindow : public QMainWindow
 {
@@ -50,6 +51,8 @@ private:
     void setupToolbar();
     void setupBottomBar();
     void setupNotificationButton();
+    void setupShortcuts();
+    void reloadShortcuts();
     void loadSettings();
     void saveSettings();
 
@@ -76,6 +79,11 @@ private:
     QToolButton *m_themeButton;
     QToolButton *m_settingsButton;
     QProgressDialog *m_backupDialog;
+
+    QShortcut *m_shortcutNewTask;
+    QShortcut *m_shortcutSearch;
+    QShortcut *m_shortcutDeleteTask;
+    QShortcut *m_shortcutToggleTheme;
 };
 
 #endif // MAINWINDOW_H

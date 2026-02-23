@@ -1,5 +1,6 @@
 #include "task_list_widget.h"
 #include "task_card_widget.h"
+#include "../controllers/database.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QScrollArea>
@@ -67,7 +68,14 @@ void TaskListWidget::setupTaskList()
 
     m_taskListContainer = new QWidget();
     m_taskListLayout = new QVBoxLayout(m_taskListContainer);
-    m_taskListLayout->setSpacing(12);
+    int cardStyle = Database::instance().getSetting("appearance_card_style", "0").toInt();
+    int spacing = 12;
+    if (cardStyle == 1) {
+        spacing = 8;
+    } else if (cardStyle == 2) {
+        spacing = 16;
+    }
+    m_taskListLayout->setSpacing(spacing);
     m_taskListLayout->setContentsMargins(0, 0, 0, 0);
     m_taskListLayout->addStretch();
 

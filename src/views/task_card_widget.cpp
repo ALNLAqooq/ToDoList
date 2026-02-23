@@ -1,5 +1,6 @@
 #include "task_card_widget.h"
 #include "task_dialog.h"
+#include "../controllers/database.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QMessageBox>
@@ -26,9 +27,20 @@ TaskCardWidget::~TaskCardWidget()
 
 void TaskCardWidget::setupUI()
 {
+    int cardStyle = Database::instance().getSetting("appearance_card_style", "0").toInt();
+    int margin = 16;
+    int spacing = 12;
+    if (cardStyle == 1) {
+        margin = 10;
+        spacing = 8;
+    } else if (cardStyle == 2) {
+        margin = 20;
+        spacing = 14;
+    }
+
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
-    mainLayout->setSpacing(12);
-    mainLayout->setContentsMargins(16, 16, 16, 16);
+    mainLayout->setSpacing(spacing);
+    mainLayout->setContentsMargins(margin, margin, margin, margin);
 
     QHBoxLayout *headerLayout = new QHBoxLayout();
     headerLayout->setSpacing(12);

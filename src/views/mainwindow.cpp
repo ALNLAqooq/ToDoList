@@ -7,6 +7,7 @@
 #include "../controllers/backupmanager.h"
 #include "../utils/logger.h"
 #include "../utils/theme_manager.h"
+#include "../utils/shortcut_keys.h"
 #include "../controllers/task_controller.h"
 #include "../controllers/database.h"
 #include "../controllers/notificationmanager.h"
@@ -18,6 +19,8 @@
 #include <QSize>
 #include <QProgressDialog>
 #include <QMessageBox>
+#include <QShortcut>
+#include <QKeySequence>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -41,6 +44,10 @@ MainWindow::MainWindow(QWidget *parent)
     , m_themeButton(nullptr)
     , m_settingsButton(nullptr)
     , m_backupDialog(nullptr)
+    , m_shortcutNewTask(nullptr)
+    , m_shortcutSearch(nullptr)
+    , m_shortcutDeleteTask(nullptr)
+    , m_shortcutToggleTheme(nullptr)
 {
     loadSettings();
     setupUI();
@@ -48,6 +55,7 @@ MainWindow::MainWindow(QWidget *parent)
     setupLayout();
     setupBottomBar();
     setupNotificationButton();
+    setupShortcuts();
     m_backupManager = new BackupManager(this);
     if (!m_backupManager->initialize()) {
         LOG_ERROR("MainWindow", "Backup manager initialization failed");
@@ -255,6 +263,15 @@ void MainWindow::loadSettings()
     int y = settings.value("window_y", -1).toInt();
     int sidebarWidth = settings.value("sidebar_width", 280).toInt();
 
+    bool restoreLast = Database::instance().getSetting("settings_restore_last", "1") == "1";
+    if (!restoreLast) {
+        width = 1280;
+        height = 720;
+        x = -1;
+        y = -1;
+        sidebarWidth = 280;
+    }
+
     resize(width, height);
 
     if (x >= 0 && y >= 0) {
@@ -359,6 +376,53 @@ void MainWindow::setupNotificationButton()
     LOG_INFO("MainWindow", "Notification button setup complete");
 }
 
+void MainWindow::setupShortcuts()
+{
+    m_shortcutNewTask = new QShortcut(this);
+    m_shortcutNewTask->setContext(Qt::ApplicationShortcut);
+    connect(m_shortcutNewTask, &QShortcut::activated, this, &MainWindow::onNewTaskClicked);
+
+    m_shortcutSearch = new QShortcut(this);
+    m_shortcutSearch->setContext(Qt::ApplicationShortcut);
+    connect(m_shortcutSearch, &QShortcut::activated, this, [this]() {
+        if (m_searchBox) {
+            m_searchBox->setFocus();
+            m_searchBox->selectAll();
+        }
+    });
+
+    m_shortcutDeleteTask = new QShortcut(this);
+    m_shortcutDeleteTask->setContext(Qt::ApplicationShortcut);
+    connect(m_shortcutDeleteTask, &QShortcut::activated, this, [this]() {
+        if (m_contentArea) {
+            m_contentArea->deleteCurrentTask();
+        }
+    });
+
+    m_shortcutToggleTheme = new QShortcut(this);
+    m_shortcutToggleTheme->setContext(Qt::ApplicationShortcut);
+    connect(m_shortcutToggleTheme, &QShortcut::activated, this, &MainWindow::onThemeToggleClicked);
+
+    reloadShortcuts();
+}
+
+void MainWindow::reloadShortcuts()
+{
+    Database &db = Database::instance();
+    if (m_shortcutNewTask) {
+        m_shortcutNewTask->setKey(QKeySequence(db.getSetting(ShortcutKeys::NewTask, ShortcutKeys::DefaultNewTask)));
+    }
+    if (m_shortcutSearch) {
+        m_shortcutSearch->setKey(QKeySequence(db.getSetting(ShortcutKeys::Search, ShortcutKeys::DefaultSearch)));
+    }
+    if (m_shortcutDeleteTask) {
+        m_shortcutDeleteTask->setKey(QKeySequence(db.getSetting(ShortcutKeys::DeleteTask, ShortcutKeys::DefaultDeleteTask)));
+    }
+    if (m_shortcutToggleTheme) {
+        m_shortcutToggleTheme->setKey(QKeySequence(db.getSetting(ShortcutKeys::ToggleTheme, ShortcutKeys::DefaultToggleTheme)));
+    }
+}
+
 void MainWindow::onNotificationClicked()
 {
     if (!m_notificationPanel) {
@@ -419,6 +483,7 @@ void MainWindow::onSettingsClicked()
                 m_sidebar->refreshTags();
             }
         });
+        connect(m_settingsDialog, &SettingsDialog::shortcutsChanged, this, &MainWindow::reloadShortcuts);
     }
     m_settingsDialog->show();
     m_settingsDialog->raise();

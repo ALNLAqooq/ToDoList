@@ -1,6 +1,7 @@
 #include "task_dialog.h"
 #include "../controllers/database.h"
 #include "../utils/file_utils.h"
+#include "../utils/shortcut_keys.h"
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QDesktopServices>
@@ -10,6 +11,8 @@
 #include <QSet>
 #include <QColor>
 #include <QSize>
+#include <QShortcut>
+#include <QKeySequence>
 
 TaskDialog::TaskDialog(TaskController *controller, int taskId, QWidget *parent)
     : QDialog(parent)
@@ -57,34 +60,9 @@ void TaskDialog::setupUI()
     buttonLayout->addStretch();
 
     QPushButton *saveButton = new QPushButton("保存", this);
-    saveButton->setStyleSheet(R"(
-        QPushButton {
-            background-color: #3B82F6;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 8px 24px;
-            font-size: 14px;
-        }
-        QPushButton:hover {
-            background-color: #2563EB;
-        }
-    )");
 
     QPushButton *cancelButton = new QPushButton("取消", this);
-    cancelButton->setStyleSheet(R"(
-        QPushButton {
-            background-color: #F3F4F6;
-            color: #4B5563;
-            border: none;
-            border-radius: 4px;
-            padding: 8px 24px;
-            font-size: 14px;
-        }
-        QPushButton:hover {
-            background-color: #E5E7EB;
-        }
-    )");
+    cancelButton->setProperty("flat", true);
 
     buttonLayout->addWidget(saveButton);
     buttonLayout->addWidget(cancelButton);
@@ -93,6 +71,10 @@ void TaskDialog::setupUI()
 
     connect(saveButton, &QPushButton::clicked, this, &TaskDialog::onSaveClicked);
     connect(cancelButton, &QPushButton::clicked, this, &TaskDialog::onCancelClicked);
+
+    auto *saveShortcut = new QShortcut(QKeySequence(Database::instance().getSetting(ShortcutKeys::Save, ShortcutKeys::DefaultSave)), this);
+    saveShortcut->setContext(Qt::WidgetWithChildrenShortcut);
+    connect(saveShortcut, &QShortcut::activated, saveButton, &QPushButton::click);
 }
 
 void TaskDialog::setupBasicInfoTab()
@@ -104,34 +86,12 @@ void TaskDialog::setupBasicInfoTab()
     titleLabel->setStyleSheet("font-weight: bold; font-size: 14px;");
     m_titleEdit = new QLineEdit(m_basicInfoTab);
     m_titleEdit->setPlaceholderText("请输入任务标题");
-    m_titleEdit->setStyleSheet(R"(
-        QLineEdit {
-            border: 1px solid #D1D5DB;
-            border-radius: 4px;
-            padding: 8px;
-            font-size: 14px;
-        }
-        QLineEdit:focus {
-            border: 1px solid #3B82F6;
-        }
-    )");
 
     QLabel *descriptionLabel = new QLabel("描述:", m_basicInfoTab);
     descriptionLabel->setStyleSheet("font-weight: bold; font-size: 14px;");
     m_descriptionEdit = new QTextEdit(m_basicInfoTab);
     m_descriptionEdit->setPlaceholderText("请输入任务描述");
     m_descriptionEdit->setMaximumHeight(150);
-    m_descriptionEdit->setStyleSheet(R"(
-        QTextEdit {
-            border: 1px solid #D1D5DB;
-            border-radius: 4px;
-            padding: 8px;
-            font-size: 14px;
-        }
-        QTextEdit:focus {
-            border: 1px solid #3B82F6;
-        }
-    )");
 
     QLabel *priorityLabel = new QLabel("优先级:", m_basicInfoTab);
     priorityLabel->setStyleSheet("font-weight: bold; font-size: 14px;");
@@ -139,21 +99,6 @@ void TaskDialog::setupBasicInfoTab()
     m_priorityCombo->addItem("低", Task::Low);
     m_priorityCombo->addItem("中", Task::Medium);
     m_priorityCombo->addItem("高", Task::High);
-    m_priorityCombo->setStyleSheet(R"(
-        QComboBox {
-            border: 1px solid #D1D5DB;
-            border-radius: 4px;
-            padding: 8px;
-            font-size: 14px;
-        }
-        QComboBox:focus {
-            border: 1px solid #3B82F6;
-        }
-        QComboBox::drop-down {
-            border: none;
-            padding-right: 10px;
-        }
-    )");
 
     QLabel *deadlineLabel = new QLabel("截止日期:", m_basicInfoTab);
     deadlineLabel->setStyleSheet("font-weight: bold; font-size: 14px;");
@@ -161,17 +106,6 @@ void TaskDialog::setupBasicInfoTab()
     m_deadlineEdit->setDateTime(QDateTime::currentDateTime().addDays(7));
     m_deadlineEdit->setCalendarPopup(true);
     m_deadlineEdit->setDisplayFormat("yyyy-MM-dd HH:mm");
-    m_deadlineEdit->setStyleSheet(R"(
-        QDateTimeEdit {
-            border: 1px solid #D1D5DB;
-            border-radius: 4px;
-            padding: 8px;
-            font-size: 14px;
-        }
-        QDateTimeEdit:focus {
-            border: 1px solid #3B82F6;
-        }
-    )");
 
     layout->addWidget(titleLabel);
     layout->addWidget(m_titleEdit);
@@ -196,22 +130,6 @@ void TaskDialog::setupDetailsTab()
     m_progressSlider = new QSlider(Qt::Horizontal, m_detailsTab);
     m_progressSlider->setRange(0, 100);
     m_progressSlider->setValue(0);
-    m_progressSlider->setStyleSheet(R"(
-        QSlider::groove:horizontal {
-            height: 8px;
-            background: #E5E7EB;
-            border-radius: 4px;
-        }
-        QSlider::handle:horizontal {
-            background: #3B82F6;
-            width: 18px;
-            margin: -5px 0;
-            border-radius: 9px;
-        }
-        QSlider::handle:horizontal:hover {
-            background: #2563EB;
-        }
-    )");
 
     m_progressLabel = new QLabel("0%", m_detailsTab);
     m_progressLabel->setMinimumWidth(50);
@@ -228,42 +146,11 @@ void TaskDialog::setupDetailsTab()
     m_tagCombo->setPlaceholderText("选择标签");
     m_tagCombo->setEditable(true);
     m_tagCombo->setInsertPolicy(QComboBox::NoInsert);
-    m_tagCombo->setStyleSheet(R"(
-        QComboBox {
-            border: 1px solid #D1D5DB;
-            border-radius: 4px;
-            padding: 8px;
-            font-size: 14px;
-        }
-    )");
 
     m_addTagButton = new QPushButton("添加", m_detailsTab);
-    m_addTagButton->setStyleSheet(R"(
-        QPushButton {
-            background-color: #3B82F6;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 6px 16px;
-        }
-        QPushButton:hover {
-            background-color: #2563EB;
-        }
-    )");
 
     m_removeTagButton = new QPushButton("移除", m_detailsTab);
-    m_removeTagButton->setStyleSheet(R"(
-        QPushButton {
-            background-color: #F3F4F6;
-            color: #4B5563;
-            border: none;
-            border-radius: 4px;
-            padding: 6px 16px;
-        }
-        QPushButton:hover {
-            background-color: #E5E7EB;
-        }
-    )");
+    m_removeTagButton->setProperty("flat", true);
 
     tagLayout->addWidget(m_tagCombo);
     tagLayout->addWidget(m_addTagButton);
@@ -272,62 +159,19 @@ void TaskDialog::setupDetailsTab()
     m_tagList = new QListWidget(m_detailsTab);
     m_tagList->setSelectionMode(QAbstractItemView::SingleSelection);
     m_tagList->setMaximumHeight(100);
-    m_tagList->setStyleSheet(R"(
-        QListWidget {
-            border: 1px solid #D1D5DB;
-            border-radius: 4px;
-            background-color: white;
-        }
-        QListWidget::item:selected {
-            background-color: #3B82F6;
-        }
-    )");
+    m_tagList->setObjectName("taskDialogTagList");
 
     QLabel *filesLabel = new QLabel("附件:", m_detailsTab);
     filesLabel->setStyleSheet("font-weight: bold; font-size: 14px;");
 
     QHBoxLayout *fileButtonLayout = new QHBoxLayout();
     m_browseFileButton = new QPushButton("浏览...", m_detailsTab);
-    m_browseFileButton->setStyleSheet(R"(
-        QPushButton {
-            background-color: #3B82F6;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 6px 16px;
-        }
-        QPushButton:hover {
-            background-color: #2563EB;
-        }
-    )");
 
     m_removeFileButton = new QPushButton("移除", m_detailsTab);
-    m_removeFileButton->setStyleSheet(R"(
-        QPushButton {
-            background-color: #F3F4F6;
-            color: #4B5563;
-            border: none;
-            border-radius: 4px;
-            padding: 6px 16px;
-        }
-        QPushButton:hover {
-            background-color: #E5E7EB;
-        }
-    )");
+    m_removeFileButton->setProperty("flat", true);
 
     m_openFileButton = new QPushButton("打开", m_detailsTab);
-    m_openFileButton->setStyleSheet(R"(
-        QPushButton {
-            background-color: #10B981;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 6px 16px;
-        }
-        QPushButton:hover {
-            background-color: #059669;
-        }
-    )");
+    m_openFileButton->setProperty("success", true);
 
     fileButtonLayout->addWidget(m_browseFileButton);
     fileButtonLayout->addWidget(m_removeFileButton);
@@ -337,13 +181,7 @@ void TaskDialog::setupDetailsTab()
     m_fileList = new QListWidget(m_detailsTab);
     m_fileList->setMaximumHeight(100);
     m_fileList->setIconSize(QSize(18, 18));
-    m_fileList->setStyleSheet(R"(
-        QListWidget {
-            border: 1px solid #D1D5DB;
-            border-radius: 4px;
-            background-color: white;
-        }
-    )");
+    m_fileList->setObjectName("taskDialogFileList");
 
     QLabel *stepsLabel = new QLabel("子任务:", m_detailsTab);
     stepsLabel->setStyleSheet("font-weight: bold; font-size: 14px;");
@@ -353,32 +191,9 @@ void TaskDialog::setupDetailsTab()
     m_stepEdit->setPlaceholderText("输入子任务");
 
     m_addStepButton = new QPushButton("添加", m_detailsTab);
-    m_addStepButton->setStyleSheet(R"(
-        QPushButton {
-            background-color: #3B82F6;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 6px 16px;
-        }
-        QPushButton:hover {
-            background-color: #2563EB;
-        }
-    )");
 
     m_removeStepButton = new QPushButton("移除", m_detailsTab);
-    m_removeStepButton->setStyleSheet(R"(
-        QPushButton {
-            background-color: #F3F4F6;
-            color: #4B5563;
-            border: none;
-            border-radius: 4px;
-            padding: 6px 16px;
-        }
-        QPushButton:hover {
-            background-color: #E5E7EB;
-        }
-    )");
+    m_removeStepButton->setProperty("flat", true);
 
     stepButtonLayout->addWidget(m_stepEdit);
     stepButtonLayout->addWidget(m_addStepButton);
@@ -386,13 +201,7 @@ void TaskDialog::setupDetailsTab()
 
     m_stepList = new QListWidget(m_detailsTab);
     m_stepList->setMaximumHeight(100);
-    m_stepList->setStyleSheet(R"(
-        QListWidget {
-            border: 1px solid #D1D5DB;
-            border-radius: 4px;
-            background-color: white;
-        }
-    )");
+    m_stepList->setObjectName("taskDialogStepList");
 
     layout->addWidget(progressLabel);
     layout->addLayout(progressLayout);
@@ -428,42 +237,11 @@ void TaskDialog::setupDependenciesTab()
     QHBoxLayout *dependencyButtonLayout = new QHBoxLayout();
     m_taskCombo = new QComboBox(m_dependenciesTab);
     m_taskCombo->setPlaceholderText("选择依赖的任务");
-    m_taskCombo->setStyleSheet(R"(
-        QComboBox {
-            border: 1px solid #D1D5DB;
-            border-radius: 4px;
-            padding: 8px;
-            font-size: 14px;
-        }
-    )");
 
     m_addDependencyButton = new QPushButton("添加依赖", m_dependenciesTab);
-    m_addDependencyButton->setStyleSheet(R"(
-        QPushButton {
-            background-color: #3B82F6;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 6px 16px;
-        }
-        QPushButton:hover {
-            background-color: #2563EB;
-        }
-    )");
 
     m_removeDependencyButton = new QPushButton("移除依赖", m_dependenciesTab);
-    m_removeDependencyButton->setStyleSheet(R"(
-        QPushButton {
-            background-color: #F3F4F6;
-            color: #4B5563;
-            border: none;
-            border-radius: 4px;
-            padding: 6px 16px;
-        }
-        QPushButton:hover {
-            background-color: #E5E7EB;
-        }
-    )");
+    m_removeDependencyButton->setProperty("flat", true);
 
     dependencyButtonLayout->addWidget(m_taskCombo);
     dependencyButtonLayout->addWidget(m_addDependencyButton);
@@ -471,16 +249,7 @@ void TaskDialog::setupDependenciesTab()
 
     m_dependencyList = new QListWidget(m_dependenciesTab);
     m_dependencyList->setSelectionMode(QAbstractItemView::SingleSelection);
-    m_dependencyList->setStyleSheet(R"(
-        QListWidget {
-            border: 1px solid #D1D5DB;
-            border-radius: 4px;
-            background-color: white;
-        }
-        QListWidget::item:selected {
-            background-color: #3B82F6;
-        }
-    )");
+    m_dependencyList->setObjectName("taskDialogDependencyList");
 
     layout->addWidget(dependencyLabel);
     layout->addLayout(dependencyButtonLayout);

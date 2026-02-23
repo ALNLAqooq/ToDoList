@@ -151,6 +151,22 @@ void ContentArea::setSearchText(const QString &text)
     }
 }
 
+bool ContentArea::deleteCurrentTask()
+{
+    if (m_currentTaskId <= 0) {
+        return false;
+    }
+
+    QMessageBox::StandardButton reply = QMessageBox::question(
+        this, "确认删除",
+        "确定要删除这个任务吗？",
+        QMessageBox::Yes | QMessageBox::No);
+    if (reply == QMessageBox::Yes) {
+        return m_controller->deleteTask(m_currentTaskId);
+    }
+    return false;
+}
+
 void ContentArea::loadTasks()
 {
     if (m_taskTree) {

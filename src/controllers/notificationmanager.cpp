@@ -2,6 +2,14 @@
 #include "../utils/logger.h"
 #include <QSqlQuery>
 #include <QDateTime>
+#include <QApplication>
+
+namespace {
+bool settingEnabled(Database &db, const char *key, bool defaultValue)
+{
+    return db.getSetting(key, defaultValue ? "1" : "0") == "1";
+}
+}
 
 NotificationManager& NotificationManager::instance()
 {
@@ -33,9 +41,26 @@ bool NotificationManager::addNotification(Notification::Type type, const QString
 
 bool NotificationManager::addNotification(const Notification &notification)
 {
+    if (!settingEnabled(m_database, "notifications_enabled", true)) {
+        return false;
+    }
+
+    if (notification.type() == Notification::Deadline &&
+        !settingEnabled(m_database, "notifications_reminders", true)) {
+        return false;
+    }
+
+    if (notification.type() == Notification::System &&
+        !settingEnabled(m_database, "notifications_system", true)) {
+        return false;
+    }
+
     Notification notif = notification;
 
     if (m_database.insertNotification(notif)) {
+        if (settingEnabled(m_database, "notifications_sound", false)) {
+            QApplication::beep();
+        }
         updateUnreadCount();
         emit notificationAdded(notif);
         emit notificationsUpdated();
