@@ -44,6 +44,7 @@ set(HEADERS
     src/utils/icon_utils.h
     src/utils/theme_manager.h
     src/utils/shortcut_keys.h
+    src/utils/style_utils.h
     src/controllers/task_controller.h
     src/models/task.h
     src/models/task_step.h

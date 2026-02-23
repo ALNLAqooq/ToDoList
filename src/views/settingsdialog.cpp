@@ -4,6 +4,7 @@
 #include "../utils/shortcut_keys.h"
 #include "../utils/icon_utils.h"
 #include "../utils/theme_manager.h"
+#include "../utils/style_utils.h"
 #include <QTabWidget>
 #include <QComboBox>
 #include <QCheckBox>
@@ -193,16 +194,6 @@ QString displayShortcutText(const QString &sequence)
 {
     QString trimmed = sequence.trimmed();
     return trimmed.isEmpty() ? QString("未设置") : trimmed;
-}
-
-QString buildCornerRadiusStyle(int radius)
-{
-    return QString(
-        "QLineEdit, QTextEdit, QPlainTextEdit, QComboBox, QDateEdit, QTimeEdit, QDateTimeEdit, "
-        "QSpinBox, QDoubleSpinBox, QPushButton, QToolButton, QGroupBox, QMenu, QListWidget, "
-        "QTableWidget, QTreeView, QTabBar::tab { border-radius: %1px; }\n"
-        "TaskCardWidget { border-radius: %1px; }\n"
-    ).arg(radius);
 }
 
 QString isoDateString(const QDateTime &dt)
@@ -1278,7 +1269,7 @@ bool SettingsDialog::applySettings()
         themeManager.setFollowSystem(false);
         themeManager.setTheme(static_cast<ThemeManager::Theme>(themeValue));
     }
-    themeManager.setCustomStyleSheet(buildCornerRadiusStyle(m_cornerRadiusSpin->value()));
+    themeManager.setCustomStyleSheet(StyleUtils::buildCornerRadiusStyle(m_cornerRadiusSpin->value()));
 
     QFont appFont = qApp->font();
     appFont.setPointSize(m_fontSizeSpin->value());

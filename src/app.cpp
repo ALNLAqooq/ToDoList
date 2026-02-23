@@ -11,18 +11,7 @@
 #include <QMessageBox>
 #include <QCoreApplication>
 #include <QFont>
-
-namespace {
-QString buildCornerRadiusStyle(int radius)
-{
-    return QString(
-        "QLineEdit, QTextEdit, QPlainTextEdit, QComboBox, QDateEdit, QTimeEdit, QDateTimeEdit, "
-        "QSpinBox, QDoubleSpinBox, QPushButton, QToolButton, QGroupBox, QMenu, QListWidget, "
-        "QTableWidget, QTreeView, QTabBar::tab { border-radius: %1px; }\n"
-        "TaskCardWidget { border-radius: %1px; }\n"
-    ).arg(radius);
-}
-}
+#include "utils/style_utils.h"
 
 App::App(QObject *parent)
     : QObject(parent)
@@ -116,7 +105,7 @@ void App::initTheme()
     ThemeManager &manager = ThemeManager::instance();
     manager.applyTheme();
     int radius = Database::instance().getSetting("appearance_corner_radius", "8").toInt();
-    manager.setCustomStyleSheet(buildCornerRadiusStyle(radius));
+    manager.setCustomStyleSheet(StyleUtils::buildCornerRadiusStyle(radius));
 
     LOG_INFO("Theme", QString("Theme initialized: %1").arg(manager.themeName(manager.currentTheme())));
 }
