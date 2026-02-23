@@ -46,6 +46,7 @@ private:
     QLabel *m_dependencyTitleLabel;
     QListWidget *m_dependencyList;
     QLabel *m_priorityLabel;
+    QLabel *m_createdAtLabel;
     QLabel *m_deadlineLabel;
     QLabel *m_progressLabel;
     QLabel *m_statusLabel;

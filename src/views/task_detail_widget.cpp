@@ -32,6 +32,7 @@ TaskDetailWidget::TaskDetailWidget(TaskController *controller, QWidget *parent)
     , m_dependencyTitleLabel(nullptr)
     , m_dependencyList(nullptr)
     , m_priorityLabel(nullptr)
+    , m_createdAtLabel(nullptr)
     , m_deadlineLabel(nullptr)
     , m_progressLabel(nullptr)
     , m_statusLabel(nullptr)
@@ -82,6 +83,10 @@ void TaskDetailWidget::setupUI()
     m_priorityLabel = new QLabel(this);
     m_priorityLabel->setProperty("detailMuted", true);
     m_priorityLabel->hide();
+
+    m_createdAtLabel = new QLabel(this);
+    m_createdAtLabel->setProperty("detailMuted", true);
+    m_createdAtLabel->hide();
 
     m_deadlineLabel = new QLabel(this);
     m_deadlineLabel->setProperty("detailMuted", true);
@@ -173,6 +178,7 @@ void TaskDetailWidget::setupUI()
     m_mainLayout->addWidget(m_titleLabel);
     m_mainLayout->addWidget(m_statusLabel);
     m_mainLayout->addWidget(m_priorityLabel);
+    m_mainLayout->addWidget(m_createdAtLabel);
     m_mainLayout->addWidget(m_deadlineLabel);
     m_mainLayout->addWidget(m_progressLabel);
     m_mainLayout->addWidget(m_sourceLabel);
@@ -210,6 +216,7 @@ void TaskDetailWidget::clearTask()
     m_dependencyTitleLabel->hide();
     m_dependencyList->hide();
     m_priorityLabel->hide();
+    m_createdAtLabel->hide();
     m_deadlineLabel->hide();
     m_progressLabel->hide();
     m_statusLabel->hide();
@@ -248,6 +255,14 @@ void TaskDetailWidget::updateDisplay()
     }
     m_priorityLabel->setText(priorityText);
     m_priorityLabel->show();
+
+    if (m_currentTask.createdAt().isValid()) {
+        const QDateTime createdAt = m_currentTask.createdAt();
+        m_createdAtLabel->setText("开始日期: <b>" + createdAt.toString("yyyy-MM-dd HH:mm") + "</b>");
+        m_createdAtLabel->show();
+    } else {
+        m_createdAtLabel->hide();
+    }
 
     if (m_currentTask.dueDate().isValid()) {
         const QDateTime createdAt = m_currentTask.createdAt();
