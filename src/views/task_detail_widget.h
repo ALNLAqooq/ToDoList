@@ -48,6 +48,9 @@ private:
     QLabel *m_priorityLabel;
     QLabel *m_createdAtLabel;
     QLabel *m_deadlineLabel;
+    QWidget *m_remainingWidget;
+    QLabel *m_remainingTitleLabel;
+    QLabel *m_remainingDaysLabel;
     QLabel *m_progressLabel;
     QLabel *m_statusLabel;
     QLabel *m_sourceLabel;

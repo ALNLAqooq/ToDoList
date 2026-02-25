@@ -6,6 +6,7 @@
 #include "../utils/theme_utils.h"
 #include <QDate>
 #include <QHBoxLayout>
+#include <QGridLayout>
 #include <QFileInfo>
 #include <QIcon>
 #include <QColor>
@@ -34,6 +35,9 @@ TaskDetailWidget::TaskDetailWidget(TaskController *controller, QWidget *parent)
     , m_priorityLabel(nullptr)
     , m_createdAtLabel(nullptr)
     , m_deadlineLabel(nullptr)
+    , m_remainingWidget(nullptr)
+    , m_remainingTitleLabel(nullptr)
+    , m_remainingDaysLabel(nullptr)
     , m_progressLabel(nullptr)
     , m_statusLabel(nullptr)
     , m_sourceLabel(nullptr)
@@ -91,6 +95,26 @@ void TaskDetailWidget::setupUI()
     m_deadlineLabel = new QLabel(this);
     m_deadlineLabel->setProperty("detailMuted", true);
     m_deadlineLabel->hide();
+
+    m_remainingWidget = new QWidget(this);
+    m_remainingWidget->setObjectName("detailRemainingWidget");
+    m_remainingWidget->setMinimumWidth(90);
+    m_remainingWidget->hide();
+
+    auto *remainingLayout = new QVBoxLayout(m_remainingWidget);
+    remainingLayout->setContentsMargins(8, 6, 8, 6);
+    remainingLayout->setSpacing(4);
+
+    m_remainingTitleLabel = new QLabel("剩余", m_remainingWidget);
+    m_remainingTitleLabel->setAlignment(Qt::AlignCenter);
+    m_remainingTitleLabel->setStyleSheet("font-size: 15px; font-weight: 600;");
+
+    m_remainingDaysLabel = new QLabel("--天", m_remainingWidget);
+    m_remainingDaysLabel->setAlignment(Qt::AlignCenter);
+    m_remainingDaysLabel->setStyleSheet("font-size: 40px; font-weight: 700;");
+
+    remainingLayout->addWidget(m_remainingTitleLabel);
+    remainingLayout->addWidget(m_remainingDaysLabel);
 
     m_progressLabel = new QLabel(this);
     m_progressLabel->setProperty("detailMuted", true);
@@ -173,13 +197,21 @@ void TaskDetailWidget::setupUI()
     m_dependencyList->setObjectName("detailDependencyList");
     m_dependencyList->hide();
 
+    auto *detailMetaLayout = new QGridLayout();
+    detailMetaLayout->setContentsMargins(0, 0, 0, 0);
+    detailMetaLayout->setHorizontalSpacing(10);
+    detailMetaLayout->setVerticalSpacing(6);
+    detailMetaLayout->setColumnStretch(0, 1);
+    detailMetaLayout->addWidget(m_priorityLabel, 0, 0);
+    detailMetaLayout->addWidget(m_createdAtLabel, 1, 0);
+    detailMetaLayout->addWidget(m_deadlineLabel, 2, 0);
+    detailMetaLayout->addWidget(m_remainingWidget, 0, 1, 3, 1, Qt::AlignRight | Qt::AlignTop);
+
     m_mainLayout->addLayout(headerLayout);
     m_mainLayout->addWidget(m_placeholderLabel);
     m_mainLayout->addWidget(m_titleLabel);
     m_mainLayout->addWidget(m_statusLabel);
-    m_mainLayout->addWidget(m_priorityLabel);
-    m_mainLayout->addWidget(m_createdAtLabel);
-    m_mainLayout->addWidget(m_deadlineLabel);
+    m_mainLayout->addLayout(detailMetaLayout);
     m_mainLayout->addWidget(m_progressLabel);
     m_mainLayout->addWidget(m_sourceLabel);
     m_mainLayout->addWidget(descTitle);
@@ -218,6 +250,7 @@ void TaskDetailWidget::clearTask()
     m_priorityLabel->hide();
     m_createdAtLabel->hide();
     m_deadlineLabel->hide();
+    m_remainingWidget->hide();
     m_progressLabel->hide();
     m_statusLabel->hide();
     m_sourceLabel->hide();
@@ -294,8 +327,20 @@ void TaskDetailWidget::updateDisplay()
         m_deadlineLabel->setStyleSheet(QString("color: %1; background-color: %2; padding: 4px 8px; border-radius: 6px; font-weight: 600;")
                                            .arg(blended, bgColor));
         m_deadlineLabel->show();
+
+        const qint64 remainingDays = now.date().daysTo(dueAt.date());
+        const bool isOverdue = dueAt < now;
+        const qint64 displayDays = qAbs(remainingDays);
+
+        m_remainingTitleLabel->setText(isOverdue ? "逾期" : "剩余");
+        m_remainingTitleLabel->setStyleSheet(QString("color: %1; font-size: 15px; font-weight: 600;").arg(blended));
+        m_remainingDaysLabel->setText(QString("%1天").arg(displayDays));
+        m_remainingDaysLabel->setStyleSheet(QString("color: %1; font-size: 40px; font-weight: 700;").arg(blended));
+        m_remainingWidget->setStyleSheet(QString("#detailRemainingWidget { background-color: %1; border-radius: 8px; }").arg(bgColor));
+        m_remainingWidget->show();
     } else {
         m_deadlineLabel->hide();
+        m_remainingWidget->hide();
     }
 
     m_progressLabel->setText(QString("进度: %1%").arg(static_cast<int>(m_currentTask.progress() * 100)));
